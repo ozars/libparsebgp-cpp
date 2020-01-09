@@ -1,11 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
+
 #include <nonstd/optional.hpp>
 #include <nonstd/span.hpp>
 #include <nonstd/string_view.hpp>
-
-#define PARSEBGP_UTILS_NODISCARD [[nodiscard]]
 
 namespace parsebgp {
 namespace utils {
@@ -16,119 +16,88 @@ using nonstd::optional;
 using nonstd::span;
 using nonstd::string_view;
 
-template <typename T, size_t Extent = dynamic_extent>
+template<typename T, size_t Extent = dynamic_extent>
 using array_view = span<const T, Extent>;
 
-template <typename Self>
-class OpaqueView {
-   private:
-    friend Self;
-    friend class Impl;
+using ipv4_view = array_view<uint8_t, 4>;
+using ipv6_view = array_view<uint8_t, 16>;
 
-    OpaqueView() = delete;
-    ~OpaqueView() = default;
-    OpaqueView(const OpaqueView&) = default;
-    OpaqueView(OpaqueView&&) = default;
-    OpaqueView& operator=(const OpaqueView&) = default;
-    OpaqueView& operator=(OpaqueView&&) = default;
+template<typename SelfT, typename CPtrT>
+class CPtrView {
+private:
+  friend SelfT;
+  friend class Impl;
 
-    using OpaqueBase = OpaqueView<Self>;
-    using CPtr = const void*;
+  CPtrView() = delete;
+  ~CPtrView() = default;
+  CPtrView(const CPtrView&) = default;
+  CPtrView(CPtrView&&) = default;
+  CPtrView& operator=(const CPtrView&) = default;
+  CPtrView& operator=(CPtrView&&) = default;
 
-    OpaqueView(CPtr cptr) noexcept : cptr_(cptr) {}
+  using Self = SelfT;
+  using BaseView = CPtrView;
+  using CPtr = CPtrT;
+  using ConstCPtr = std::add_pointer_t<std::add_const_t<std::remove_pointer_t<CPtrT>>>;
 
-    PARSEBGP_UTILS_NODISCARD
-    auto cptr() const noexcept { return cptr_; }
+  CPtrView(CPtr cptr) noexcept : cptr_(cptr) {}
+  CPtr cptr() noexcept { return cptr_; }
+  ConstCPtr cptr() const noexcept { return cptr_; }
 
-    CPtr cptr_;
+  CPtr cptr_;
 };
 
-template <typename Self>
-class MutableOpaqueView {
-   private:
-    friend Self;
-    friend class Impl;
-
-    MutableOpaqueView() = delete;
-    ~MutableOpaqueView() = default;
-    MutableOpaqueView(const MutableOpaqueView&) = default;
-    MutableOpaqueView(MutableOpaqueView&&) = default;
-    MutableOpaqueView& operator=(const MutableOpaqueView&) = default;
-    MutableOpaqueView& operator=(MutableOpaqueView&&) = default;
-
-    using OpaqueBase = MutableOpaqueView<Self>;
-    using CPtr = void*;
-
-    MutableOpaqueView(CPtr cptr) noexcept : cptr_(cptr) {}
-
-    PARSEBGP_UTILS_NODISCARD
-    auto cptr() noexcept { return cptr_; }
-
-    PARSEBGP_UTILS_NODISCARD
-    auto cptr() const noexcept { return cptr_; }
-
-    CPtr cptr_;
-};
-
-template <typename Self>
+template<typename Self>
 class FlagClass {
-   public:
-    PARSEBGP_UTILS_NODISCARD
-    bool operator==(const Self& rhs) const {
-        return static_cast<const Self&>(*this).value() ==
-               static_cast<const Self&>(rhs)->value();
-    }
+public:
+  bool operator==(const Self& rhs) const {
+    return static_cast<const Self&>(*this).value() == static_cast<const Self&>(rhs)->value();
+  }
 
-    PARSEBGP_UTILS_NODISCARD
-    bool operator!=(const Self& rhs) const {
-        return static_cast<const Self&>(*this).value() !=
-               static_cast<const Self&>(rhs)->value();
-    }
+  bool operator!=(const Self& rhs) const {
+    return static_cast<const Self&>(*this).value() != static_cast<const Self&>(rhs)->value();
+  }
 
-   private:
-    friend Self;
-    friend class Impl;
+private:
+  friend Self;
+  friend class Impl;
 
-    FlagClass() = default;
-    ~FlagClass() = default;
-    FlagClass(const FlagClass&) = default;
-    FlagClass(FlagClass&&) = default;
-    FlagClass& operator=(const FlagClass&) = default;
-    FlagClass& operator=(FlagClass&&) = default;
+  FlagClass() = default;
+  ~FlagClass() = default;
+  FlagClass(const FlagClass&) = default;
+  FlagClass(FlagClass&&) = default;
+  FlagClass& operator=(const FlagClass&) = default;
+  FlagClass& operator=(FlagClass&&) = default;
 };
 
-template <typename Self>
+template<typename Self>
 class EnumClass {
-   public:
-    PARSEBGP_UTILS_NODISCARD
-    bool operator==(const Self& rhs) const {
-        return static_cast<const Self&>(this).value() ==
-               static_cast<const Self&>(rhs)->value();
-    }
+public:
+  bool operator==(const Self& rhs) const {
+    return static_cast<const Self&>(this).value() == static_cast<const Self&>(rhs)->value();
+  }
 
-    PARSEBGP_UTILS_NODISCARD
-    bool operator!=(const Self& rhs) const {
-        return static_cast<const Self&>(this).value() !=
-               static_cast<const Self&>(rhs)->value();
-    }
+  bool operator!=(const Self& rhs) const {
+    return static_cast<const Self&>(this).value() != static_cast<const Self&>(rhs)->value();
+  }
 
-   private:
-    friend Self;
-    friend class Impl;
+private:
+  friend Self;
+  friend class Impl;
 
-    EnumClass() = default;
-    ~EnumClass() = default;
-    EnumClass(const EnumClass&) = default;
-    EnumClass(EnumClass&&) = default;
-    EnumClass& operator=(const EnumClass&) = default;
-    EnumClass& operator=(EnumClass&&) = default;
+  EnumClass() = default;
+  ~EnumClass() = default;
+  EnumClass(const EnumClass&) = default;
+  EnumClass(EnumClass&&) = default;
+  EnumClass& operator=(const EnumClass&) = default;
+  EnumClass& operator=(EnumClass&&) = default;
 };
 
-template <typename Self>
+template<typename Self>
 class IteratorClass {};
 
-template <typename Self>
+template<typename Self>
 class RangeClass {};
 
-}  // namespace utils
-}  // namespace parsebgp
+} // namespace utils
+} // namespace parsebgp

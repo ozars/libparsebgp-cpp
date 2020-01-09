@@ -1,5 +1,3 @@
-#pragma once
-
 #include "parsebgp/utils_impl.hpp"
 
 namespace parsebgp {

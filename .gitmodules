@@ -1,0 +1,12 @@
+[submodule "external/libparsebgp"]
+	path = external/libparsebgp
+	url = https://github.com/CAIDA/libparsebgp
+[submodule "external/span-lite"]
+	path = external/span-lite
+	url = https://github.com/martinmoene/span-lite
+[submodule "external/string-view-lite"]
+	path = external/string-view-lite
+	url = https://github.com/martinmoene/string-view-lite
+[submodule "external/optional-lite"]
+	path = external/optional-lite
+	url = https://github.com/martinmoene/optional-lite
