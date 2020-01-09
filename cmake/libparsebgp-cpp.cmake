@@ -1,0 +1,5 @@
+function(read_version_from_file output_var version_file)
+    file(READ "${version_file}" version)
+    string(STRIP "${version}" version)
+    set(${output_var} "${version}" PARENT_SCOPE)
+endfunction()
