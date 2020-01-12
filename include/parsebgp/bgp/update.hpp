@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "parsebgp/utils.hpp"
+#include <parsebgp/utils.hpp>
 
 extern "C" {
 struct parsebgp_bgp_update_as_path_seg;
@@ -29,21 +29,20 @@ public:
     IPV6 = 2,
   };
 
+  AfiType(Value value) : value_(value) {}
+
   Value value() const { return value_; }
   bool is_valid() const { return value_ == IPV4 || value_ == IPV6; }
   bool is_ipv4() const { return value_ == IPV4; }
   bool is_ipv6() const { return value_ == IPV6; }
 
 private:
-  AfiType(Value value) : value_(value) {}
   Value value_;
-  friend class utils::Impl;
 };
 
-class PathAttributes
-  : public utils::CPtrView<PathAttributes, const parsebgp_bgp_update_path_attrs*> {
+class PathAttributes : public utils::CPtrView<PathAttributes, parsebgp_bgp_update_path_attrs*> {
 public:
-  class Flag : public utils::FlagClass<Flag> {
+  class Flags : public utils::FlagsClass<Flags> {
   public:
     enum Mask {
       OPTIONAL = 0x80,
@@ -52,8 +51,9 @@ public:
       EXTENDED = 0x10,
     };
 
-    uint8_t value() const { return value_; }
+    Flags(uint8_t value) : value_(value) {}
 
+    uint8_t value() const { return value_; }
     bool is_optional() const { return value_ & OPTIONAL; }
     bool is_transitive() const { return value_ & TRANSITIVE; }
     bool is_partial() const { return value_ & PARTIAL; }
@@ -61,7 +61,6 @@ public:
 
   private:
     uint8_t value_;
-    friend class utils::Impl;
   };
 
   class Type : public utils::EnumClass<Type> {
@@ -88,7 +87,35 @@ public:
       LARGE_COMMUNITIES = 32,
     };
 
+    Type(Value value) : value_(value) {}
+
     Value value() const { return value_; }
+    bool is_valid() const {
+      switch (value_) {
+        case ORIGIN:
+        case AS_PATH:
+        case NEXT_HOP:
+        case MED:
+        case LOCAL_PREF:
+        case ATOMIC_AGGREGATE:
+        case AGGREGATOR:
+        case COMMUNITIES:
+        case ORIGINATOR_ID:
+        case CLUSTER_LIST:
+        case MP_REACH_NLRI:
+        case MP_UNREACH_NLRI:
+        case EXT_COMMUNITIES:
+        case AS4_PATH:
+        case AS4_AGGREGATOR:
+        case AS_PATHLIMIT:
+        case IPV6_EXT_COMMUNITIES:
+        case BGP_LS:
+        case LARGE_COMMUNITIES:
+          return true;
+        default:
+          return false;
+      }
+    }
     bool is_origin() const { return value_ == ORIGIN; }
     bool is_as_path() const { return value_ == AS_PATH; }
     bool is_next_hop() const { return value_ == NEXT_HOP; }
@@ -110,60 +137,59 @@ public:
     bool is_large_communities() const { return value_ == LARGE_COMMUNITIES; }
 
   private:
-    Type(Value value) : value_(value) {}
     Value value_;
-    friend class utils::Impl;
   };
 
 private:
-  class Generic : public utils::CPtrView<Generic, const parsebgp_bgp_update_path_attr*> {
+  class Base : public utils::CPtrView<Base, parsebgp_bgp_update_path_attr*> {
   public:
-    Flag flag() const;
+    Base(CPtr cptr) : BaseView(cptr) {}
+
+    Flags flags() const;
     Type type() const;
 
-  private:
-    using BaseView::BaseView;
-    friend class utils::Impl;
+  protected:
+    using BaseView::cptr;
   };
 
-#define CLASS_FOR_GENERIC_PATH_ATTRIBUTE(ClassName_, ValueType_)                                   \
-  class ClassName_ : public Generic {                                                              \
+#define PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(ClassName_, ValueType_)                                \
+  class ClassName_ : private Base {                                                                \
   public:                                                                                          \
-    ValueType_ value() const;                                                                      \
-    operator ValueType_() const;                                                                   \
+    using ValueType = ValueType_;                                                                  \
                                                                                                    \
-  private:                                                                                         \
-    using Generic::Generic;                                                                        \
-    friend class utils::Impl;                                                                      \
+    using Base::Base;                                                                              \
+    using Base::flags;                                                                             \
+    using Base::type;                                                                              \
+    ValueType value() const;                                                                       \
+    operator ValueType() const;                                                                    \
   }
 
 public:
-  CLASS_FOR_GENERIC_PATH_ATTRIBUTE(Origin, uint8_t);
-  CLASS_FOR_GENERIC_PATH_ATTRIBUTE(NextHop, utils::ipv4_view);
-  CLASS_FOR_GENERIC_PATH_ATTRIBUTE(Med, uint32_t);
-  CLASS_FOR_GENERIC_PATH_ATTRIBUTE(LocalPref, uint32_t);
+  PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(Origin, uint8_t);
+  PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(NextHop, const utils::ipv4_span);
+  PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(Med, uint32_t);
+  PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(LocalPref, uint32_t);
 
-  class Aggregator : public Generic {
+#undef PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE
+
+  class Aggregator : private Base {
   public:
+    using Base::Base;
+    using Base::flags;
+    using Base::type;
     uint32_t asn() const;
-    utils::ipv4_view addr() const;
-
-  private:
-    using Generic::Generic;
-    friend class utils::Impl;
+    const utils::ipv4_span addr() const;
   };
 
-  utils::optional<Origin> origin() const;
-  utils::optional<NextHop> next_hop() const;
-  utils::optional<Med> med() const;
-  utils::optional<LocalPref> local_pref() const;
-  utils::optional<Aggregator> aggregator() const;
+  PathAttributes(CPtr cptr) : BaseView(cptr) {}
+
+  const Origin origin() const;
+  const NextHop next_hop() const;
+  const Med med() const;
+  const LocalPref local_pref() const;
+  const Aggregator aggregator() const;
 
   // TODO: Rest of path attributes
-
-private:
-  using BaseView::BaseView;
-  friend class utils::Impl;
 };
 
 } // namespace bgp
