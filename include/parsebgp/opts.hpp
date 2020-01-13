@@ -28,8 +28,7 @@ public:
   bool silence_invalid() const;
   Options& set_silence_invalid(bool value);
 
-  bgp::Options bgp();
-  const bgp::Options bgp() const;
+  bgp::Options bgp() const;
 
   // bmp::Options& bmp();
   // const bmp::Options& bmp() const;

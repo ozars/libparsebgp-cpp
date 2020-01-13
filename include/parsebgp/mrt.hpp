@@ -89,11 +89,13 @@ public:
 
   Message(CPtr cptr) : BaseView(cptr) {}
 
+  void dump(int depth = 0) const;
+
   Type type() const;
   uint16_t subtype() const;
   uint32_t length() const;
 
-  const table_dump_v2::Message to_table_dump_v2() const;
+  table_dump_v2::Message to_table_dump_v2() const;
 };
 
 class AsnType : public utils::EnumClass<AsnType> {
@@ -122,8 +124,8 @@ public:
 
   AsnType asn_type() const;
   bgp::AfiType ip_afi() const;
-  const utils::ipv4_span bgp_id() const;
-  const utils::ipv6_span ip() const;
+  utils::ipv4_span bgp_id() const;
+  utils::ipv6_span ip() const;
   uint32_t asn() const;
 };
 
@@ -133,7 +135,7 @@ class PeerIndex
 public:
   PeerIndex(CPtr cptr) : BaseView(cptr) {}
 
-  const utils::ipv4_span collector_bgp_id() const;
+  utils::ipv4_span collector_bgp_id() const;
   utils::string_view view_name() const;
 
 private:
@@ -151,7 +153,7 @@ public:
 
   uint16_t peer_index() const;
   uint32_t originated_time() const;
-  const bgp::PathAttributes path_attributes() const;
+  bgp::PathAttributes path_attributes() const;
 };
 
 class Rib
@@ -162,7 +164,7 @@ public:
 
   uint32_t sequence_no() const;
   uint8_t prefix_len() const;
-  const utils::ipv6_span prefix() const;
+  utils::ipv6_span prefix() const;
 
 private:
   friend BaseRange;
@@ -223,12 +225,14 @@ public:
 
   Message(CPtr cptr) : BaseView(cptr) {}
 
+  void dump(int depth = 0) const;
+
   mrt::Message::Type type() const;
   Subtype subtype() const;
   uint32_t length() const;
 
-  const PeerIndex to_peer_index() const;
-  const Rib to_rib() const;
+  PeerIndex to_peer_index() const;
+  Rib to_rib() const;
 };
 
 } // namespace table_dump_v2

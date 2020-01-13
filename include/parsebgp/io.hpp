@@ -1,8 +1,10 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <memory>
+#include <type_traits>
 
 #include <parsebgp.hpp>
 #include <parsebgp/utils.hpp>
@@ -88,11 +90,11 @@ private:
  * - B <= left_ < B + C
  * - left_ <= right_ < B + 2 * C
  * - There are (right_ - left_) bytes available to read.
- * - There are (left_ - B - (right_ - left_)) bytes available to write.
+ * - There are (C - (right_ - left_)) bytes available to write.
  * - All pointers to B are invalidated if C is modified (e.g. reserve()).
  */
 class MirroredRingBuffer {
-
+public:
   /* Create a buffer with *at least* capacity bytes. It will be ceiled to multiple of page size. */
   MirroredRingBuffer(size_t capacity)
     : buf_(mirror_create(capacity)), left_(buf_.data()), right_(buf_.data()) {}
@@ -125,15 +127,15 @@ class MirroredRingBuffer {
 
   bool is_null() const { return !buf_.data(); }
 
-  size_t capacity() const { return buf_.size(); }
+  size_t capacity() const { return buf_.size() / 2; }
 
   bool reserve(size_t new_capacity) {
-    if (buf_.size() < new_capacity) {
+    if (capacity() < new_capacity) {
       MirroredRingBuffer new_buf(new_capacity);
       if (new_buf.is_null()) return false;
       auto in = prepare_read();
       auto out = new_buf.prepare_write();
-      // assert(in.size() <= out.size());
+      assert(in.size() <= out.size());
       std::copy(in.data(), in.data() + in.size(), out.data());
       *this = std::move(new_buf);
     }
@@ -145,21 +147,21 @@ class MirroredRingBuffer {
   const utils::span<uint8_t> prepare_read() const { return { left_, available_read() }; }
 
   void commit_read(size_t bytes) {
-    // assert(left_ + bytes <= right_);
+    assert(left_ + bytes <= right_);
     left_ += bytes;
 
-    if (left_ >= buf_.data() + buf_.size()) {
-      left_ -= buf_.size();
-      right_ -= buf_.size();
+    if (left_ >= buf_.data() + capacity()) {
+      left_ -= capacity();
+      right_ -= capacity();
     }
   }
 
-  size_t available_write() const { return left_ - buf_.data() - available_read(); }
+  size_t available_write() const { return capacity() - available_read(); }
 
   utils::span<uint8_t> prepare_write() { return { right_, available_write() }; }
 
   void commit_write(size_t bytes) {
-    // assert(right_ + bytes < buf_.data() + 2 * buf_.size());
+    assert(right_ + bytes < buf_.data() + 2 * capacity());
     right_ += bytes;
   }
 
@@ -172,76 +174,87 @@ private:
   uint8_t* right_;
 };
 
-using ReaderResultType = const utils::expected<std::reference_wrapper<Message>, Error>;
+template<typename Stream>
+class ReaderStatus {
+public:
+  using StreamStatus = typename std::decay_t<Stream>::Status;
 
-static inline ReaderResultType identity_transform(ReaderResultType msg) {
+  enum Value {
+    OK,
+    STREAM_FINISHED,
+    FINISHED,
+    STREAM_ERROR,
+    DECODER_ERROR,
+    MEMORY_FAILURE,
+  };
+
+  ReaderStatus(Value value = OK) : value_(value), inner_error_({}) {}
+  ReaderStatus(StreamStatus stream_error_) : value_(STREAM_ERROR), inner_error_(stream_error_) {}
+  ReaderStatus(parsebgp::Error decoder_error_)
+    : value_(DECODER_ERROR), inner_error_(decoder_error_) {}
+  ReaderStatus& operator=(Value value) {
+    value_ = value;
+    inner_error_ = {};
+    return *this;
+  }
+  ReaderStatus& operator=(StreamStatus stream_error_) {
+    value_ = STREAM_ERROR;
+    inner_error_.stream_ = stream_error_;
+    return *this;
+  }
+  ReaderStatus& operator=(parsebgp::Error decoder_error_) {
+    value_ = DECODER_ERROR;
+    inner_error_.decoder_ = decoder_error_;
+    return *this;
+  }
+
+  Value value() const { return value_; }
+  bool is_ok() const { return value_ == OK; }
+  bool is_stream_finished() const { return value_ == STREAM_FINISHED; }
+  bool is_finished() const { return value_ == FINISHED; }
+  bool is_stream_error() const { return value_ == STREAM_ERROR; }
+  bool is_decoder_error() const { return value_ == DECODER_ERROR; }
+  bool is_memory_failure() const { return value_ == MEMORY_FAILURE; }
+
+  bool not_finished() const { return is_ok() || is_stream_finished(); }
+
+  StreamStatus to_stream_error() const {
+    assert(is_stream_error());
+    return inner_error_.stream_;
+  }
+
+  parsebgp::Error to_decoder_error() const {
+    assert(is_decoder_error());
+    return inner_error_.stream_;
+  }
+
+private:
+  Value value_;
+  union {
+    StreamStatus stream_;
+    parsebgp::Error decoder_;
+  } inner_error_;
+};
+
+template<typename Stream, typename T>
+using ReaderTransformOutput = utils::expected<T, ReaderStatus<Stream>>;
+
+template<typename Stream>
+using ReaderTransformInput = ReaderTransformOutput<Stream, std::reference_wrapper<const Message>>;
+
+template<typename Stream>
+static ReaderTransformInput<Stream> identity_transform(ReaderTransformInput<Stream> msg) {
   return msg;
 };
 
-template<typename Stream, Message::Type::Value message_type, auto transformer = identity_transform>
+template<typename Stream, Message::Type::Value message_type, typename Transformer>
 class Reader {
 public:
-  class Status {
-  public:
-    enum Value {
-      OK,
-      STREAM_FINISHED,
-      FINISHED,
-      STREAM_ERROR,
-      DECODER_ERROR,
-      MEMORY_FAILURE,
-    };
-
-    Status(Value value = OK) : value_(value), inner_error_({}) {}
-    Status(typename Stream::Status stream_error_)
-      : value_(STREAM_ERROR), inner_error_(stream_error_) {}
-    Status(parsebgp::Error decoder_error_) : value_(DECODER_ERROR), inner_error_(decoder_error_) {}
-    Status& operator=(Value value) {
-      value_ = value;
-      inner_error_ = {};
-    }
-    Status& operator=(typename Stream::Status stream_error_) {
-      value_ = STREAM_ERROR;
-      inner_error_ = stream_error_;
-      return *this;
-    }
-    Status& operator=(parsebgp::Error decoder_error_) {
-      value_ = DECODER_ERROR;
-      inner_error_ = decoder_error_;
-      return *this;
-    }
-
-    bool is_ok() const { return value_ == OK; }
-    bool is_stream_finished() const { return value_ == STREAM_FINISHED; }
-    bool is_finished() const { return value_ == FINISHED; }
-    bool is_stream_error() const { return value_ == STREAM_ERROR; }
-    bool is_decoder_error() const { return value_ == DECODER_ERROR; }
-    bool is_memory_failure() const { return value_ == MEMORY_FAILURE; }
-
-    bool not_finished() const { return is_ok() || is_stream_finished(); }
-
-    typename Stream::Status to_stream_error() const {
-      // assert(is_stream_error());
-      return inner_error_.stream_;
-    }
-
-    parsebgp::Error to_decoder_error() const {
-      // assert(is_stream_error());
-      return inner_error_.stream_;
-    }
-
-  private:
-    Value value_;
-    union {
-      typename Stream::Status stream_;
-      parsebgp::Error decoder_;
-    } inner_error_;
-  };
-
   /* TODO: Add buffer as template parameter. */
   using Buffer = MirroredRingBuffer;
-  using ResultType = ReaderResultType;
-  using TransformedResultType = decltype(transformer(std::declval<ResultType>()));
+  using Status = ReaderStatus<Stream>;
+  using TransformInput = ReaderTransformInput<Stream>;
+  using TransformOutput = decltype(std::declval<Transformer>()(std::declval<TransformInput>()));
 
   struct Sentinel;
 
@@ -252,11 +265,11 @@ public:
       return *this;
     }
 
-    TransformedResultType operator*() { return reader_->message(); }
+    TransformOutput operator*() { return reader_->message(); }
     bool operator==(const Iterator& rhs) const { return reader_ == rhs->reader_; }
     bool operator!=(const Iterator& rhs) const { return reader_ != rhs->reader_; }
-    bool operator==(const Sentinel&) const { return !reader_.status_.not_finished(); }
-    bool operator!=(const Sentinel&) const { return reader_.status_.not_finished(); }
+    bool operator==(const Sentinel&) const { return !reader_->status_.not_finished(); }
+    bool operator!=(const Sentinel&) const { return reader_->status_.not_finished(); }
 
   private:
     friend class Reader;
@@ -269,48 +282,56 @@ public:
     bool operator!=(const Iterator& rhs) const { return rhs != *this; }
   };
 
-  Reader(Stream stream, Options options = {}, size_t buffer_size = 32678) : started_(false) {}
+  Reader(Stream&& stream,
+         Options options = {},
+         size_t buffer_size = 32678,
+         Transformer transformer = identity_transform<Stream>)
+    : started_(false)
+    , stream_(std::forward<Stream>(stream))
+    , buffer_(buffer_size)
+    , transformer_(std::forward<Transformer>(transformer)) {
+      if (buffer_.is_null()) status_ = Status::MEMORY_FAILURE;
+  }
 
   void decode_one() {
     if (status_.is_ok()) {
       auto out = buffer_.prepare_read();
-      if (out.size() != 0) {
-        bool already_got_partial = false;
-        do {
-          message_.clear();
-          auto ret = message_.decode(options_, message_type, out.data(), out.size());
-          if (ret) {
-            buffer_.commit_read(ret.value());
-            break;
-          } else if (ret.error().is_partial_msg() && !status_.is_stream_finished()) {
-            if (already_got_partial) {
-              constexpr size_t growth_factor = 2;
-              buffer_.reserve(buffer_.capacity() * growth_factor);
-            } else {
-              already_got_partial = true;
-            }
-            fill_buffer();
-            out = buffer_.prepare_read();
-            continue;
+      bool already_got_partial = false;
+      do {
+        message_.clear();
+        auto ret = message_.decode(options_, message_type, out.data(), out.size());
+        if (ret) {
+          buffer_.commit_read(ret.value());
+          break;
+        } else if (ret.error().is_partial_msg() && !status_.is_stream_finished()) {
+          if (already_got_partial) {
+            constexpr size_t growth_factor = 2;
+            buffer_.reserve(buffer_.capacity() * growth_factor);
           } else {
-            status_ = ret.error();
-            break;
+            already_got_partial = true;
           }
-        } while (true);
-      } else {
-        status_ = Status::FINISHED;
-      }
+          fill_buffer();
+          out = buffer_.prepare_read();
+          continue;
+        } else if (ret.error().is_partial_msg() && out.size() == 0) {
+          status_ = Status::FINISHED;
+          break;
+        } else {
+          status_ = ret.error();
+          break;
+        }
+      } while (true);
     }
   }
 
-  TransformedResultType message() {
+  TransformOutput message() {
     if (!started_) {
       started_ = true;
       fill_buffer();
       if (status_.not_finished()) decode_one();
     }
-    if (status_.not_finished()) return transformer(ResultType(message_));
-    return transformer(ResultType(status_));
+    if (status_.not_finished()) return transformer_(std::cref(message_));
+    return transformer_(utils::make_unexpected(status_));
   }
 
   Status status() const { return status_; }
@@ -321,17 +342,17 @@ public:
 
 private:
   void fill_buffer() {
-    // assert(status_.is_ok());
+    assert(status_.is_ok());
     auto in = buffer_.prepare_write();
     auto bytes_read = stream_.read(in.data(), in.size());
     if (stream_.good()) {
       buffer_.commit_write(bytes_read);
     } else if (stream_.eof()) {
       buffer_.commit_write(bytes_read);
-      status = Status::STREAM_FINISHED;
+      status_ = Status::STREAM_FINISHED;
     } else {
-      // assert(stream_.bad());
-      status_ = stream_.status_;
+      assert(stream_.bad());
+      status_ = stream_.status();
     }
   };
 
@@ -341,7 +362,21 @@ private:
   Options options_;
   Message message_;
   Status status_;
+  std::reference_wrapper<std::remove_reference_t<Transformer>> transformer_;
 };
+
+template<typename Stream>
+static const ReaderTransformOutput<Stream, mrt::Message> mrt_transform(
+  ReaderTransformInput<Stream> ret) {
+  if (ret.has_value()) return ret.value().get().to_mrt();
+  return utils::make_unexpected(ret.error());
+};
+
+template<typename Stream>
+Reader<Stream, Message::Type::MRT, decltype((mrt_transform<Stream>))>
+mrt_reader(Stream&& stream, Options options = {}, size_t buffer_size = 32678) {
+  return { std::forward<Stream>(stream), std::move(options), buffer_size, mrt_transform<Stream> };
+}
 
 } // namespace io
 } // namespace parsebgp

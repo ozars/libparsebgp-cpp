@@ -52,11 +52,7 @@ Options& Options::set_silence_invalid(bool value) {
   return *this;
 }
 
-bgp::Options Options::bgp() {
-  return bgp::Options(&cptr()->bgp);
-}
-
-const bgp::Options Options::bgp() const {
+bgp::Options Options::bgp() const {
   return bgp::Options(&cptr()->bgp);
 }
 

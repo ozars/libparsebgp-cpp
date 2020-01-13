@@ -14,6 +14,7 @@ namespace utils {
 
 using nonstd::dynamic_extent;
 using nonstd::expected;
+using nonstd::make_unexpected;
 using nonstd::span;
 using nonstd::string_view;
 
@@ -43,10 +44,7 @@ private:
     other.cptr_ = nullptr;
   }
 
-  CPtr cptr() { return cptr_; }
-  const CPtr cptr() const { return cptr_; }
-  // Note: Not returning const T* is intentional above: subspans can't be constructed with const T*.
-  //       T is decltype(*cptr_).
+  CPtr cptr() const { return cptr_; }
 
   CPtr cptr_;
 };
@@ -96,88 +94,65 @@ public:
   using Element = ElementT;
   using ElementCPtr = ElementCPtrT;
 
-private:
-  template<bool IsConst>
-  class BaseIterator : public CPtrView<BaseIterator<IsConst>, ElementCPtr> {
+  class Iterator : public CPtrView<Iterator, ElementCPtr> {
   public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = std::conditional_t<IsConst, const Element, Element>;
+    using value_type = Element;
     using difference_type = std::ptrdiff_t;
     using pointer = Element*;     // dunno why this is necessary
     using reference = value_type; // no lvalue ref since it is a view already
 
-    reference operator*() { return { cptr() }; }
-    const reference operator*() const { return { cptr() }; }
+    reference operator*() const { return { cptr() }; }
 
-    BaseIterator operator+(difference_type n) const { return { SelfT::range_add(cptr(), n) }; }
-    BaseIterator operator-(difference_type n) const { return { SelfT::range_subtract(cptr(), n) }; }
+    Iterator operator+(difference_type n) const { return { SelfT::range_add(cptr(), n) }; }
+    Iterator operator-(difference_type n) const { return { SelfT::range_subtract(cptr(), n) }; }
 
-    BaseIterator& operator+=(difference_type n) { return (*this = *this + 1); }
-    BaseIterator& operator-=(difference_type n) { return (*this = *this - 1); }
+    Iterator& operator+=(difference_type n) { return (*this = *this + 1); }
+    Iterator& operator-=(difference_type n) { return (*this = *this - 1); }
 
-    BaseIterator& operator++() { return (*this += 1); }
-    BaseIterator& operator--() { return (*this -= 1); }
+    Iterator& operator++() { return (*this += 1); }
+    Iterator& operator--() { return (*this -= 1); }
 
-    BaseIterator operator++(int) {
-      BaseIterator it = *this;
+    Iterator operator++(int) {
+      Iterator it = *this;
       static_cast<void>(++*this);
       return it;
     }
-    BaseIterator operator--(int) {
-      BaseIterator it = *this;
+    Iterator operator--(int) {
+      Iterator it = *this;
       static_cast<void>(--*this);
       return it;
     }
 
-    difference_type operator-(BaseIterator rhs) const {
+    difference_type operator-(Iterator rhs) const {
       return SelfT::range_difference(cptr(), rhs.cptr());
     }
 
     reference operator[](difference_type n) { return *(*this + n); }
-    const reference operator[](difference_type n) const { return *(*this + n); }
 
-    bool operator==(BaseIterator rhs) const { return cptr() == rhs.cptr(); }
-    bool operator!=(BaseIterator rhs) const { return cptr() != rhs.cptr(); }
+    bool operator==(Iterator rhs) const { return cptr() == rhs.cptr(); }
+    bool operator!=(Iterator rhs) const { return cptr() != rhs.cptr(); }
 
-    bool operator<(BaseIterator rhs) const { return cptr() < rhs.cptr(); }
-    bool operator>(BaseIterator rhs) const { return cptr() > rhs.cptr(); }
-    bool operator<=(BaseIterator rhs) const { return cptr() <= rhs.cptr(); }
-    bool operator>=(BaseIterator rhs) const { return cptr() >= rhs.cptr(); }
+    bool operator<(Iterator rhs) const { return cptr() < rhs.cptr(); }
+    bool operator>(Iterator rhs) const { return cptr() > rhs.cptr(); }
+    bool operator<=(Iterator rhs) const { return cptr() <= rhs.cptr(); }
+    bool operator>=(Iterator rhs) const { return cptr() >= rhs.cptr(); }
 
   private:
-    friend class Iterator;
-    friend class ConstIterator;
-    using typename CPtrView<BaseIterator, ElementCPtr>::BaseView;
-    using typename CPtrView<BaseIterator, ElementCPtr>::CPtr;
-    using CPtrView<BaseIterator, ElementCPtr>::cptr;
+    friend class CPtrRage;
+    using typename CPtrView<Iterator, ElementCPtr>::BaseView;
+    using typename CPtrView<Iterator, ElementCPtr>::CPtr;
+    using CPtrView<Iterator, ElementCPtr>::cptr;
 
-    BaseIterator(CPtr cptr) : BaseView(cptr) {}
+    Iterator(CPtr cptr) : BaseView(cptr) {}
   };
 
 public:
-  class Iterator : public BaseIterator</* IsConst = */ false> {
-  private:
-    friend class CPtrRange;
-    using typename BaseIterator<false>::CPtr;
-    using BaseIterator<false>::cptr;
-    Iterator(CPtr cptr) : BaseIterator<false>(cptr) {}
-  };
-
-  class ConstIterator : public BaseIterator</* IsConst = */ true> {
-  private:
-    friend class CPtrRange;
-    using typename BaseIterator<true>::CPtr;
-    using BaseIterator<true>::cptr;
-    ConstIterator(CPtr cptr) : BaseIterator<true>(cptr) {}
-  };
-
-  ConstIterator begin() const {
-    return ConstIterator(static_cast<const SelfT&>(*this).range_data());
-  }
-  ConstIterator end() const { return begin() + size(); }
+  Iterator begin() const { return static_cast<SelfT&>(*this).range_data(); }
+  Iterator end() const { return begin() + size(); }
   std::size_t size() const { return static_cast<const SelfT&>(*this).range_size(); }
 
-  const Element operator[](int i) const { return begin()[i]; }
+  Element operator[](int i) const { return begin()[i]; }
 
 private:
   using BaseRange = CPtrRange;

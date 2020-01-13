@@ -1,9 +1,9 @@
 #pragma once
 
 #include <parsebgp/bgp.hpp>
+#include <parsebgp/error.hpp>
 #include <parsebgp/mrt.hpp>
 #include <parsebgp/opts.hpp>
-#include <parsebgp/error.hpp>
 #include <parsebgp/utils.hpp>
 
 extern "C" struct parsebgp_msg;
@@ -22,7 +22,7 @@ public:
     };
 
     constexpr Type(Value value) : value_(value) {}
-    bool is_valid() {
+    bool is_valid() const {
       switch (value_) {
         case BGP:
         case BMP:
@@ -33,6 +33,7 @@ public:
       }
       return false;
     }
+    Value value() const { return value_; }
     bool is_bgp() const { return value_ == BGP; }
     bool is_bmp() const { return value_ == BMP; }
     bool is_mrt() const { return value_ == MRT; }
@@ -52,12 +53,12 @@ public:
 
   utils::expected<size_t, Error> decode(const Options& opts,
                                         Type type,
-                                        const void* buf,
+                                        const uint8_t* buf,
                                         size_t len);
   void clear();
   void dump() const;
 
-  const mrt::Message to_mrt() const;
+  mrt::Message to_mrt() const;
 };
 
 } // namespace parsebgp

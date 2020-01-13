@@ -22,6 +22,10 @@ static_assert(AsnType::ASN_4_BYTE == int(PARSEBGP_MRT_ASN_4_BYTE));
 // mrt::Message
 //==============================================================================
 
+void Message::dump(int depth) const {
+  parsebgp_mrt_dump_msg(cptr(), depth);
+}
+
 auto Message::type() const -> Type {
   return Type::Value(cptr()->type);
 }
@@ -34,7 +38,7 @@ uint32_t Message::length() const {
   return cptr()->len;
 }
 
-const table_dump_v2::Message Message::to_table_dump_v2() const {
+table_dump_v2::Message Message::to_table_dump_v2() const {
   return table_dump_v2::Message(cptr());
 }
 
@@ -68,11 +72,11 @@ bgp::AfiType PeerEntry::ip_afi() const {
   return bgp::AfiType::Value(cptr()->ip_afi);
 }
 
-const utils::ipv4_span PeerEntry::bgp_id() const {
+utils::ipv4_span PeerEntry::bgp_id() const {
   return cptr()->bgp_id;
 }
 
-const utils::ipv6_span PeerEntry::ip() const {
+utils::ipv6_span PeerEntry::ip() const {
   return cptr()->ip;
 }
 
@@ -84,7 +88,7 @@ uint32_t PeerEntry::asn() const {
 // mrt::table_dump_v2::PeerIndex
 //==============================================================================
 
-const utils::ipv4_span PeerIndex::collector_bgp_id() const {
+utils::ipv4_span PeerIndex::collector_bgp_id() const {
   return cptr()->collector_bgp_id;
 }
 
@@ -124,7 +128,7 @@ uint32_t RibEntry::originated_time() const {
   return cptr()->originated_time;
 }
 
-const bgp::PathAttributes RibEntry::path_attributes() const {
+bgp::PathAttributes RibEntry::path_attributes() const {
   return bgp::PathAttributes(&cptr()->path_attrs);
 }
 
@@ -140,7 +144,7 @@ uint8_t Rib::prefix_len() const {
   return cptr()->prefix_len;
 }
 
-const utils::ipv6_span Rib::prefix() const {
+utils::ipv6_span Rib::prefix() const {
   return cptr()->prefix;
 }
 
@@ -168,6 +172,10 @@ std::ptrdiff_t Rib::range_difference(const ElementCPtr lhs, const ElementCPtr rh
 // mrt::table_dump_v2::Message
 //==============================================================================
 
+void Message::dump(int depth) const {
+  parsebgp_mrt_dump_msg(cptr(), depth);
+}
+
 mrt::Message::Type Message::type() const {
   return mrt::Message::Type::Value(cptr()->type);
 }
@@ -180,11 +188,11 @@ uint32_t Message::length() const {
   return uint32_t(cptr()->len);
 }
 
-const PeerIndex Message::to_peer_index() const {
+PeerIndex Message::to_peer_index() const {
   return PeerIndex(&cptr()->types.table_dump_v2->peer_index);
 }
 
-const Rib Message::to_rib() const {
+Rib Message::to_rib() const {
   return Rib(&cptr()->types.table_dump_v2->afi_safi_rib);
 }
 

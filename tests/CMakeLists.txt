@@ -1,0 +1,3 @@
+add_executable(parsebgp_cpp_bgpdump dump.cpp)
+target_link_libraries(parsebgp_cpp_bgpdump parsebgp_cpp)
+set_target_properties(parsebgp_cpp_bgpdump PROPERTIES CXX_STANDARD 17)
