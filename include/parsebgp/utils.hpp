@@ -5,6 +5,32 @@
 #include <memory>
 #include <type_traits>
 
+#ifdef PARSEBGP_CPP_LOG_ENABLED
+#include <iostream>
+namespace parsebgp {
+namespace utils {
+
+static inline auto& logger = std::cerr;
+
+} // namespace utils
+} // namespace parsebgp
+#else
+namespace parsebgp {
+namespace utils {
+
+struct Noop {};
+
+template<typename T>
+constexpr Noop operator<<(Noop, T) {
+  return {};
+}
+
+static inline constexpr auto logger = Noop{};
+
+} // namespace utils
+} // namespace parsebgp
+#endif
+
 #include <nonstd/expected.hpp>
 #include <nonstd/span.hpp>
 #include <nonstd/string_view.hpp>
@@ -18,8 +44,8 @@ using nonstd::make_unexpected;
 using nonstd::span;
 using nonstd::string_view;
 
-using ipv4_span = span<uint8_t, 4>;
-using ipv6_span = span<uint8_t, 16>;
+using ipv4_view = span<const uint8_t, 4>;
+using ipv6_view = span<const uint8_t, 16>;
 
 template<typename SelfT, typename CPtrT>
 class CPtrView {
@@ -42,6 +68,7 @@ private:
   CPtrView& operator=(CPtrView&& other) noexcept {
     cptr_ = other.cptr_;
     other.cptr_ = nullptr;
+    return *this;
   }
 
   CPtr cptr() const { return cptr_; }
@@ -139,7 +166,7 @@ public:
     bool operator>=(Iterator rhs) const { return cptr() >= rhs.cptr(); }
 
   private:
-    friend class CPtrRage;
+    friend class CPtrRange;
     using typename CPtrView<Iterator, ElementCPtr>::BaseView;
     using typename CPtrView<Iterator, ElementCPtr>::CPtr;
     using CPtrView<Iterator, ElementCPtr>::cptr;
@@ -148,7 +175,7 @@ public:
   };
 
 public:
-  Iterator begin() const { return static_cast<SelfT&>(*this).range_data(); }
+  Iterator begin() const { return static_cast<const SelfT&>(*this).range_data(); }
   Iterator end() const { return begin() + size(); }
   std::size_t size() const { return static_cast<const SelfT&>(*this).range_size(); }
 

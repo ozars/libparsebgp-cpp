@@ -112,9 +112,8 @@ public:
         case BGP_LS:
         case LARGE_COMMUNITIES:
           return true;
-        default:
-          return false;
       }
+      return false;
     }
     bool is_origin() const { return value_ == ORIGIN; }
     bool is_as_path() const { return value_ == AS_PATH; }
@@ -166,9 +165,11 @@ private:
 
 public:
   PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(Origin, uint8_t);
-  PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(NextHop, const utils::ipv4_span);
+  PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(NextHop, const utils::ipv4_view);
   PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(Med, uint32_t);
   PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(LocalPref, uint32_t);
+  // Not generic: Aggregator
+  // Not generic: Communities
 
 #undef PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE
 
@@ -178,16 +179,58 @@ public:
     using Base::flags;
     using Base::type;
     uint32_t asn() const;
-    const utils::ipv4_span addr() const;
+    utils::ipv4_view addr() const;
+  };
+
+  union Community {
+    uint32_t u32;
+    struct {
+      // FIXME: assumes little endian
+      uint16_t value;
+      uint16_t asn;
+    };
+    Community(uint32_t* cptr) : u32(*cptr) {}
+    explicit operator uint32_t() const { return u32; }
+  };
+
+  class Communities
+    : private Base
+    , public utils::CPtrRange<Communities, Community, uint32_t*> {
+  public:
+    using Base::Base;
+    using Base::flags;
+    using Base::type;
+
+  private:
+    friend BaseRange;
+    ElementCPtr range_data() const;
+    std::size_t range_size() const;
+    static ElementCPtr range_add(const ElementCPtr ptr, std::ptrdiff_t n) { return ptr + n; }
+    static ElementCPtr range_subtract(const ElementCPtr ptr, std::ptrdiff_t n) { return ptr - n; }
+    static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs) {
+      return lhs - rhs;
+    }
   };
 
   PathAttributes(CPtr cptr) : BaseView(cptr) {}
 
-  const Origin origin() const;
-  const NextHop next_hop() const;
-  const Med med() const;
-  const LocalPref local_pref() const;
-  const Aggregator aggregator() const;
+  bool has_origin() const;
+  Origin origin() const;
+
+  bool has_next_hop() const;
+  NextHop next_hop() const;
+
+  bool has_med() const;
+  Med med() const;
+
+  bool has_local_pref() const;
+  LocalPref local_pref() const;
+
+  bool has_aggregator() const;
+  Aggregator aggregator() const;
+
+  bool has_communities() const;
+  Communities communities() const;
 
   // TODO: Rest of path attributes
 };

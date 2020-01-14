@@ -61,4 +61,10 @@ public:
   mrt::Message to_mrt() const;
 };
 
+inline void swap(Message m1, Message m2) {
+  Message t = std::move(m1);
+  m1 = std::move(m2);
+  m2 = std::move(t);
+}
+
 } // namespace parsebgp

@@ -15,11 +15,23 @@ int main(int argc, char *argv[]) {
   options.set_ignore_not_implemented(true);
   auto reader = io::mrt_reader(gzs, std::move(options));
   for(auto msg : reader) {
-    if(msg) msg->dump();
-    else {
-      std::cerr << msg.error().value() << std::endl;
-      std::cerr << msg.error().is_stream_error() << std::endl;
-      std::cerr << msg.error().to_stream_error().value() << std::endl;
+    if(msg) {
+      // msg->dump();
+      auto tdv2 = msg->to_table_dump_v2();
+      if (tdv2.subtype().is_rib_ip()) {
+        auto rib = tdv2.to_rib();
+        for(auto entry : rib) {
+          if (entry.path_attributes().has_communities()) {
+            std::cout << "COMMUNITIES: ";
+            for(auto comm : entry.path_attributes().communities()) {
+              std::cout << comm.asn << ":" << comm.value << " ";
+            }
+            std::cout << std::endl;
+          }
+        }
+      }
+    } else {
+      throw std::runtime_error(std::to_string(msg.error().value()));
     }
   }
   return 0;

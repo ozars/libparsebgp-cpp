@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include <parsebgp/mrt.hpp>
 #include <parsebgp_mrt.h>
 
@@ -39,6 +41,7 @@ uint32_t Message::length() const {
 }
 
 table_dump_v2::Message Message::to_table_dump_v2() const {
+  assert(type().is_table_dump_v2());
   return table_dump_v2::Message(cptr());
 }
 
@@ -72,11 +75,11 @@ bgp::AfiType PeerEntry::ip_afi() const {
   return bgp::AfiType::Value(cptr()->ip_afi);
 }
 
-utils::ipv4_span PeerEntry::bgp_id() const {
+utils::ipv4_view PeerEntry::bgp_id() const {
   return cptr()->bgp_id;
 }
 
-utils::ipv6_span PeerEntry::ip() const {
+utils::ipv6_view PeerEntry::ip() const {
   return cptr()->ip;
 }
 
@@ -88,7 +91,7 @@ uint32_t PeerEntry::asn() const {
 // mrt::table_dump_v2::PeerIndex
 //==============================================================================
 
-utils::ipv4_span PeerIndex::collector_bgp_id() const {
+utils::ipv4_view PeerIndex::collector_bgp_id() const {
   return cptr()->collector_bgp_id;
 }
 
@@ -144,7 +147,7 @@ uint8_t Rib::prefix_len() const {
   return cptr()->prefix_len;
 }
 
-utils::ipv6_span Rib::prefix() const {
+utils::ipv6_view Rib::prefix() const {
   return cptr()->prefix;
 }
 
@@ -189,10 +192,12 @@ uint32_t Message::length() const {
 }
 
 PeerIndex Message::to_peer_index() const {
+  assert(subtype().is_peer_index_table());
   return PeerIndex(&cptr()->types.table_dump_v2->peer_index);
 }
 
 Rib Message::to_rib() const {
+  assert(subtype().is_rib_ip());
   return Rib(&cptr()->types.table_dump_v2->afi_safi_rib);
 }
 

@@ -162,6 +162,7 @@ public:
 
   void commit_write(size_t bytes) {
     assert(right_ + bytes < buf_.data() + 2 * capacity());
+    utils::logger << "Written " << bytes << " bytes into the buffer.\n";
     right_ += bytes;
   }
 
@@ -289,26 +290,27 @@ public:
     : started_(false)
     , stream_(std::forward<Stream>(stream))
     , buffer_(buffer_size)
+    , options_(std::move(options))
     , transformer_(std::forward<Transformer>(transformer)) {
       if (buffer_.is_null()) status_ = Status::MEMORY_FAILURE;
   }
 
   void decode_one() {
-    if (status_.is_ok()) {
+    if (status_.not_finished()) {
       auto out = buffer_.prepare_read();
       bool already_got_partial = false;
-      do {
+      while(true) {
         message_.clear();
         auto ret = message_.decode(options_, message_type, out.data(), out.size());
         if (ret) {
           buffer_.commit_read(ret.value());
           break;
         } else if (ret.error().is_partial_msg() && !status_.is_stream_finished()) {
-          if (already_got_partial) {
+          if (!already_got_partial) {
+            already_got_partial = true;
+          } else {
             constexpr size_t growth_factor = 2;
             buffer_.reserve(buffer_.capacity() * growth_factor);
-          } else {
-            already_got_partial = true;
           }
           fill_buffer();
           out = buffer_.prepare_read();
@@ -320,7 +322,7 @@ public:
           status_ = ret.error();
           break;
         }
-      } while (true);
+      }
     }
   }
 
@@ -334,8 +336,14 @@ public:
     return transformer_(utils::make_unexpected(status_));
   }
 
+  Message release_message() {
+    Message new_msg;
+    swap(new_msg, message_);
+    return new_msg;
+  }
+
   Status status() const { return status_; }
-  void clear_status() const { status_ = Status::OK; }
+  // void clear_status() const { status_ = Status::OK; }
 
   Iterator begin() { return Iterator(this); }
   Sentinel end() { return {}; }

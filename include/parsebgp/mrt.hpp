@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 
 #include <parsebgp/bgp/update.hpp>
@@ -124,8 +125,8 @@ public:
 
   AsnType asn_type() const;
   bgp::AfiType ip_afi() const;
-  utils::ipv4_span bgp_id() const;
-  utils::ipv6_span ip() const;
+  utils::ipv4_view bgp_id() const;
+  utils::ipv6_view ip() const;
   uint32_t asn() const;
 };
 
@@ -135,7 +136,7 @@ class PeerIndex
 public:
   PeerIndex(CPtr cptr) : BaseView(cptr) {}
 
-  utils::ipv4_span collector_bgp_id() const;
+  utils::ipv4_view collector_bgp_id() const;
   utils::string_view view_name() const;
 
 private:
@@ -158,13 +159,13 @@ public:
 
 class Rib
   : public utils::CPtrView<Rib, parsebgp_mrt_table_dump_v2_afi_safi_rib*>
-  , utils::CPtrRange<Rib, RibEntry> {
+  , public utils::CPtrRange<Rib, RibEntry> {
 public:
   Rib(CPtr cptr) : BaseView(cptr) {}
 
   uint32_t sequence_no() const;
   uint8_t prefix_len() const;
-  utils::ipv6_span prefix() const;
+  utils::ipv6_view prefix() const;
 
 private:
   friend BaseRange;
@@ -212,12 +213,9 @@ public:
     bool is_rib_generic() const { return value_ == RIB_GENERIC; }
 
     bool is_rib_ip() const { return value_ >= RIB_IPV4_UNICAST && value_ <= RIB_IPV6_MULTICAST; }
-    bool is_rib_ip_unicast() const {
-      return value_ == RIB_IPV4_UNICAST || value_ == RIB_IPV6_UNICAST;
-    }
-    bool is_rib_ip_multicast() const {
-      return value_ == RIB_IPV4_MULTICAST || value_ == RIB_IPV6_MULTICAST;
-    }
+    bool is_rib() const { return is_rib_ip() || is_rib_generic(); }
+    bool is_rib_ip_unicast() const { return is_rib_ipv4_unicast() || is_rib_ipv6_unicast(); }
+    bool is_rib_ip_multicast() const { return is_rib_ipv4_multicast() || is_rib_ipv6_multicast(); }
 
   private:
     Value value_;
