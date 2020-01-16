@@ -7,9 +7,6 @@
 [submodule "external/string-view-lite"]
 	path = external/string-view-lite
 	url = https://github.com/martinmoene/string-view-lite
-[submodule "external/optional-lite"]
-	path = external/optional-lite
-	url = https://github.com/martinmoene/optional-lite
 [submodule "external/expected-lite"]
 	path = external/expected-lite
 	url = https://github.com/martinmoene/expected-lite

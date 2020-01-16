@@ -17,7 +17,11 @@ public:
     TRUNCATED_MSG = -5,
   };
 
+  // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
   Error(Value value = OK) : value_(value) {}
+
+  // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+  operator Value() const { return value_; }
 
   Value value() const { return value_; }
   bool is_valid() const {

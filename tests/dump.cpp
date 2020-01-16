@@ -1,6 +1,8 @@
+#include <cassert>
+#include <iostream>
+
 #include <parsebgp.hpp>
 #include <parsebgp/io.hpp>
-#include <iostream>
 
 namespace pbgp = parsebgp;
 namespace mrt = parsebgp::mrt;
@@ -21,6 +23,17 @@ int main(int argc, char *argv[]) {
       if (tdv2.subtype().is_rib_ip()) {
         auto rib = tdv2.to_rib();
         for(auto entry : rib) {
+
+          assert(entry.path_attributes().has_as_path());
+          std::cout << "ASPATH: ";
+          for (auto seg : entry.path_attributes().as_path()) {
+            std::cout << "(" << seg.type() << ") ";
+            for(auto asn : seg) {
+              std::cout << asn << (!asn.is_public() ? "[!]" : "") << " ";
+            }
+          }
+          std::cout << std::endl;
+
           if (entry.path_attributes().has_communities()) {
             std::cout << "COMMUNITIES: ";
             for(auto comm : entry.path_attributes().communities()) {

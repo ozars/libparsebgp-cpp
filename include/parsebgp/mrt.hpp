@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 
+#include <parsebgp/bgp/common.hpp>
 #include <parsebgp/bgp/update.hpp>
 #include <parsebgp/utils.hpp>
 
@@ -40,6 +41,9 @@ class Message;
 namespace parsebgp {
 namespace mrt {
 
+using bgp::Asn;
+using bgp::AfiType;
+
 class Message : public utils::CPtrView<Message, parsebgp_mrt_msg*> {
 public:
   class Type : public utils::EnumClass<Type> {
@@ -57,7 +61,11 @@ public:
       OSPF_V3_ET = 49,
     };
 
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
     Type(Value value) : value_(value) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    operator Value() { return value_; }
 
     Value value() const { return value_; }
     bool is_valid() const {
@@ -88,6 +96,7 @@ public:
     Value value_;
   };
 
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   Message(CPtr cptr) : BaseView(cptr) {}
 
   void dump(int depth = 0) const;
@@ -101,11 +110,12 @@ public:
 
 class AsnType : public utils::EnumClass<AsnType> {
 public:
-  enum Value : bool {
+  enum Value {
     ASN_2_BYTE = 0,
     ASN_4_BYTE = 1,
   };
 
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   AsnType(Value value) : value_(value) {}
 
   Value value() const { return value_; }
@@ -121,12 +131,16 @@ namespace table_dump_v2 {
 
 class PeerEntry : public utils::CPtrView<PeerEntry, parsebgp_mrt_table_dump_v2_peer_entry*> {
 public:
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   PeerEntry(CPtr cptr) : BaseView(cptr) {}
 
   AsnType asn_type() const;
-  bgp::AfiType ip_afi() const;
+  AfiType ip_afi() const;
   utils::ipv4_view bgp_id() const;
-  utils::ipv6_view ip() const;
+  utils::bytes_view raw_ip() const;
+  utils::ip_view ip() const;
+  utils::ipv4_view ipv4() const;
+  utils::ipv6_view ipv6() const;
   uint32_t asn() const;
 };
 
@@ -134,6 +148,7 @@ class PeerIndex
   : public utils::CPtrView<PeerIndex, parsebgp_mrt_table_dump_v2_peer_index*>
   , utils::CPtrRange<PeerIndex, PeerEntry> {
 public:
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   PeerIndex(CPtr cptr) : BaseView(cptr) {}
 
   utils::ipv4_view collector_bgp_id() const;
@@ -150,6 +165,7 @@ private:
 
 class RibEntry : public utils::CPtrView<RibEntry, parsebgp_mrt_table_dump_v2_rib_entry*> {
 public:
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   RibEntry(CPtr cptr) : BaseView(cptr) {}
 
   uint16_t peer_index() const;
@@ -161,6 +177,7 @@ class Rib
   : public utils::CPtrView<Rib, parsebgp_mrt_table_dump_v2_afi_safi_rib*>
   , public utils::CPtrRange<Rib, RibEntry> {
 public:
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   Rib(CPtr cptr) : BaseView(cptr) {}
 
   uint32_t sequence_no() const;
@@ -189,7 +206,11 @@ public:
       RIB_GENERIC = 6,
     };
 
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
     Subtype(Value value) : value_(value) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    operator Value() { return value_; }
 
     Value value() const { return value_; }
     bool is_valid() const {
@@ -221,6 +242,7 @@ public:
     Value value_;
   };
 
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   Message(CPtr cptr) : BaseView(cptr) {}
 
   void dump(int depth = 0) const;

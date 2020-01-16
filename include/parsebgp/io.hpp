@@ -9,7 +9,7 @@
 #include <parsebgp.hpp>
 #include <parsebgp/utils.hpp>
 
-extern "C" typedef struct gzFile_s* gzFile;
+extern "C" typedef struct gzFile_s* gzFile; // NOLINT(modernize-use-using)
 
 namespace parsebgp {
 namespace io {
@@ -30,7 +30,11 @@ public:
       VERSION_ERROR = -6,
     };
 
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
     Status(Value value = OK) : value_(value) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    operator Value() const { return value_; }
 
     Value value() const { return value_; }
     bool is_valid() const {
@@ -96,7 +100,7 @@ private:
 class MirroredRingBuffer {
 public:
   /* Create a buffer with *at least* capacity bytes. It will be ceiled to multiple of page size. */
-  MirroredRingBuffer(size_t capacity)
+  explicit MirroredRingBuffer(size_t capacity)
     : buf_(mirror_create(capacity)), left_(buf_.data()), right_(buf_.data()) {}
 
   ~MirroredRingBuffer() {
@@ -189,9 +193,15 @@ public:
     MEMORY_FAILURE,
   };
 
+  // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
   ReaderStatus(Value value = OK) : value_(value), inner_error_({}) {}
-  ReaderStatus(StreamStatus stream_error_) : value_(STREAM_ERROR), inner_error_(stream_error_) {}
-  ReaderStatus(parsebgp::Error decoder_error_)
+
+  // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+  operator Value() const { return value_; }
+
+  explicit ReaderStatus(StreamStatus stream_error_)
+    : value_(STREAM_ERROR), inner_error_(stream_error_) {}
+  explicit ReaderStatus(parsebgp::Error decoder_error_)
     : value_(DECODER_ERROR), inner_error_(decoder_error_) {}
   ReaderStatus& operator=(Value value) {
     value_ = value;
@@ -274,7 +284,7 @@ public:
 
   private:
     friend class Reader;
-    Iterator(Reader* reader) : reader_(reader) {}
+    explicit Iterator(Reader* reader) : reader_(reader) {}
     Reader* reader_;
   };
 
@@ -283,23 +293,23 @@ public:
     bool operator!=(const Iterator& rhs) const { return rhs != *this; }
   };
 
-  Reader(Stream&& stream,
-         Options options = {},
-         size_t buffer_size = 32678,
-         Transformer transformer = identity_transform<Stream>)
+  explicit Reader(Stream&& stream,
+                  Options options = {},
+                  size_t buffer_size = 32678,
+                  Transformer transformer = identity_transform<Stream>)
     : started_(false)
     , stream_(std::forward<Stream>(stream))
     , buffer_(buffer_size)
     , options_(std::move(options))
     , transformer_(std::forward<Transformer>(transformer)) {
-      if (buffer_.is_null()) status_ = Status::MEMORY_FAILURE;
+    if (buffer_.is_null()) status_ = Status::MEMORY_FAILURE;
   }
 
   void decode_one() {
     if (status_.not_finished()) {
       auto out = buffer_.prepare_read();
       bool already_got_partial = false;
-      while(true) {
+      while (true) {
         message_.clear();
         auto ret = message_.decode(options_, message_type, out.data(), out.size());
         if (ret) {
@@ -381,9 +391,12 @@ static const ReaderTransformOutput<Stream, mrt::Message> mrt_transform(
 };
 
 template<typename Stream>
-Reader<Stream, Message::Type::MRT, decltype((mrt_transform<Stream>))>
-mrt_reader(Stream&& stream, Options options = {}, size_t buffer_size = 32678) {
-  return { std::forward<Stream>(stream), std::move(options), buffer_size, mrt_transform<Stream> };
+using MrtReader = Reader<Stream, Message::Type::MRT, decltype((mrt_transform<Stream>))>;
+
+template<typename Stream>
+MrtReader<Stream> mrt_reader(Stream&& stream, Options options = {}, size_t buffer_size = 32678) {
+  return MrtReader<Stream>(
+    std::forward<Stream>(stream), std::move(options), buffer_size, mrt_transform<Stream>);
 }
 
 } // namespace io

@@ -6,20 +6,6 @@
 namespace parsebgp {
 namespace mrt {
 
-static_assert(Message::Type::BGP == int(PARSEBGP_MRT_TYPE_BGP));
-static_assert(Message::Type::OSPF_V2 == int(PARSEBGP_MRT_TYPE_OSPF_V2));
-static_assert(Message::Type::TABLE_DUMP == int(PARSEBGP_MRT_TYPE_TABLE_DUMP));
-static_assert(Message::Type::TABLE_DUMP_V2 == int(PARSEBGP_MRT_TYPE_TABLE_DUMP_V2));
-static_assert(Message::Type::BGP4MP == int(PARSEBGP_MRT_TYPE_BGP4MP));
-static_assert(Message::Type::BGP4MP_ET == int(PARSEBGP_MRT_TYPE_BGP4MP_ET));
-static_assert(Message::Type::ISIS == int(PARSEBGP_MRT_TYPE_ISIS));
-static_assert(Message::Type::ISIS_ET == int(PARSEBGP_MRT_TYPE_ISIS_ET));
-static_assert(Message::Type::OSPF_V3 == int(PARSEBGP_MRT_TYPE_OSPF_V3));
-static_assert(Message::Type::OSPF_V3_ET == int(PARSEBGP_MRT_TYPE_OSPF_V3_ET));
-
-static_assert(AsnType::ASN_2_BYTE == int(PARSEBGP_MRT_ASN_2_BYTE));
-static_assert(AsnType::ASN_4_BYTE == int(PARSEBGP_MRT_ASN_4_BYTE));
-
 //==============================================================================
 // mrt::Message
 //==============================================================================
@@ -46,22 +32,28 @@ table_dump_v2::Message Message::to_table_dump_v2() const {
 }
 
 //==============================================================================
-// mrt::table_dump_v2
+// mrt::Message::Type
 //==============================================================================
 
-namespace table_dump_v2 {
+static_assert(Message::Type::BGP == int(PARSEBGP_MRT_TYPE_BGP));
+static_assert(Message::Type::OSPF_V2 == int(PARSEBGP_MRT_TYPE_OSPF_V2));
+static_assert(Message::Type::TABLE_DUMP == int(PARSEBGP_MRT_TYPE_TABLE_DUMP));
+static_assert(Message::Type::TABLE_DUMP_V2 == int(PARSEBGP_MRT_TYPE_TABLE_DUMP_V2));
+static_assert(Message::Type::BGP4MP == int(PARSEBGP_MRT_TYPE_BGP4MP));
+static_assert(Message::Type::BGP4MP_ET == int(PARSEBGP_MRT_TYPE_BGP4MP_ET));
+static_assert(Message::Type::ISIS == int(PARSEBGP_MRT_TYPE_ISIS));
+static_assert(Message::Type::ISIS_ET == int(PARSEBGP_MRT_TYPE_ISIS_ET));
+static_assert(Message::Type::OSPF_V3 == int(PARSEBGP_MRT_TYPE_OSPF_V3));
+static_assert(Message::Type::OSPF_V3_ET == int(PARSEBGP_MRT_TYPE_OSPF_V3_ET));
 
-static_assert(Message::Subtype::PEER_INDEX_TABLE ==
-              int(PARSEBGP_MRT_TABLE_DUMP_V2_PEER_INDEX_TABLE));
-static_assert(Message::Subtype::RIB_IPV4_UNICAST ==
-              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV4_UNICAST));
-static_assert(Message::Subtype::RIB_IPV4_MULTICAST ==
-              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV4_MULTICAST));
-static_assert(Message::Subtype::RIB_IPV6_UNICAST ==
-              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV6_UNICAST));
-static_assert(Message::Subtype::RIB_IPV6_MULTICAST ==
-              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV6_MULTICAST));
-static_assert(Message::Subtype::RIB_GENERIC == int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_GENERIC));
+//==============================================================================
+// mrt::AsnType
+//==============================================================================
+
+static_assert(AsnType::ASN_2_BYTE == int(PARSEBGP_MRT_ASN_2_BYTE));
+static_assert(AsnType::ASN_4_BYTE == int(PARSEBGP_MRT_ASN_4_BYTE));
+
+namespace table_dump_v2 {
 
 //==============================================================================
 // mrt::table_dump_v2::PeerEntry
@@ -79,7 +71,24 @@ utils::ipv4_view PeerEntry::bgp_id() const {
   return cptr()->bgp_id;
 }
 
-utils::ipv6_view PeerEntry::ip() const {
+utils::ip_view PeerEntry::ip() const {
+  assert(ip_afi().is_valid());
+  switch(ip_afi()) {
+    case bgp::AfiType::IPV4:
+      return ipv4();
+    case bgp::AfiType::IPV6:
+      return ipv6();
+  }
+  return {};
+}
+
+utils::ipv4_view PeerEntry::ipv4() const {
+  assert(ip_afi().is_ipv4());
+  return {cptr()->ip, 4};
+}
+
+utils::ipv6_view PeerEntry::ipv6() const {
+  assert(ip_afi().is_ipv6());
   return cptr()->ip;
 }
 
@@ -200,6 +209,22 @@ Rib Message::to_rib() const {
   assert(subtype().is_rib_ip());
   return Rib(&cptr()->types.table_dump_v2->afi_safi_rib);
 }
+
+//==============================================================================
+// mrt::table_dump_v2::Message::Subtype
+//==============================================================================
+
+static_assert(Message::Subtype::PEER_INDEX_TABLE ==
+              int(PARSEBGP_MRT_TABLE_DUMP_V2_PEER_INDEX_TABLE));
+static_assert(Message::Subtype::RIB_IPV4_UNICAST ==
+              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV4_UNICAST));
+static_assert(Message::Subtype::RIB_IPV4_MULTICAST ==
+              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV4_MULTICAST));
+static_assert(Message::Subtype::RIB_IPV6_UNICAST ==
+              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV6_UNICAST));
+static_assert(Message::Subtype::RIB_IPV6_MULTICAST ==
+              int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_IPV6_MULTICAST));
+static_assert(Message::Subtype::RIB_GENERIC == int(PARSEBGP_MRT_TABLE_DUMP_V2_RIB_GENERIC));
 
 } // namespace table_dump_v2
 } // namespace mrt

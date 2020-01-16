@@ -11,6 +11,7 @@ namespace bgp {
 
 class Options : public utils::CPtrView<Options, parsebgp_bgp_opts*> {
 public:
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   Options(CPtr cptr) : BaseView(cptr) {}
 
   bool marker_omitted() const;

@@ -21,7 +21,12 @@ public:
       MRT = 3,
     };
 
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
     constexpr Type(Value value) : value_(value) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    constexpr operator Value() const { return value_; }
+
     bool is_valid() const {
       switch (value_) {
         case BGP:
@@ -37,8 +42,6 @@ public:
     bool is_bgp() const { return value_ == BGP; }
     bool is_bmp() const { return value_ == BMP; }
     bool is_mrt() const { return value_ == MRT; }
-
-    constexpr explicit operator Value() const { return value_; }
 
   private:
     Value value_;

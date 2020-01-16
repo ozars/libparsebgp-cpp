@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <parsebgp/bgp/common.hpp>
 #include <parsebgp/utils.hpp>
 
 extern "C" {
@@ -22,24 +23,6 @@ struct parsebgp_bgp_update;
 namespace parsebgp {
 namespace bgp {
 
-class AfiType : public utils::EnumClass<AfiType> {
-public:
-  enum Value {
-    IPV4 = 1,
-    IPV6 = 2,
-  };
-
-  AfiType(Value value) : value_(value) {}
-
-  Value value() const { return value_; }
-  bool is_valid() const { return value_ == IPV4 || value_ == IPV6; }
-  bool is_ipv4() const { return value_ == IPV4; }
-  bool is_ipv6() const { return value_ == IPV6; }
-
-private:
-  Value value_;
-};
-
 class PathAttributes : public utils::CPtrView<PathAttributes, parsebgp_bgp_update_path_attrs*> {
 public:
   class Flags : public utils::FlagsClass<Flags> {
@@ -51,7 +34,11 @@ public:
       EXTENDED = 0x10,
     };
 
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
     Flags(uint8_t value) : value_(value) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    operator uint8_t() const { return value_; }
 
     uint8_t value() const { return value_; }
     bool is_optional() const { return value_ & OPTIONAL; }
@@ -87,7 +74,11 @@ public:
       LARGE_COMMUNITIES = 32,
     };
 
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
     Type(Value value) : value_(value) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    operator Value() const { return value_; }
 
     Value value() const { return value_; }
     bool is_valid() const {
@@ -142,6 +133,7 @@ public:
 private:
   class Base : public utils::CPtrView<Base, parsebgp_bgp_update_path_attr*> {
   public:
+    // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
     Base(CPtr cptr) : BaseView(cptr) {}
 
     Flags flags() const;
@@ -168,10 +160,84 @@ public:
   PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(NextHop, const utils::ipv4_view);
   PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(Med, uint32_t);
   PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(LocalPref, uint32_t);
-  // Not generic: Aggregator
-  // Not generic: Communities
+  PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(OriginatorId, uint32_t);
 
 #undef PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE
+
+  class AsPathSegment
+    : public utils::CPtrView<AsPathSegment, parsebgp_bgp_update_as_path_seg*>
+    , public utils::CPtrRange<AsPathSegment, Asn, uint32_t*> {
+  public:
+    class Type : public utils::EnumClass<Type> {
+    public:
+      enum Value : uint8_t {
+        AS_SET = 1,
+        AS_SEQ = 2,
+        CONFED_SEQ = 3,
+        CONFED_SET = 4,
+      };
+
+      // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+      Type(Value value) : value_(value) {}
+
+      // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+      operator Value() const { return value_; }
+
+      Value value() const { return value_; }
+      bool is_valid() const {
+        switch (value_) {
+          case AS_SET:
+          case AS_SEQ:
+          case CONFED_SEQ:
+          case CONFED_SET:
+            return true;
+        }
+        return false;
+      }
+      bool is_as_set() const { return value_ == AS_SET; }
+      bool is_as_seq() const { return value_ == AS_SEQ; }
+      bool is_confed_seq() const { return value_ == CONFED_SEQ; }
+      bool is_confed_set() const { return value_ == CONFED_SET; }
+
+    private:
+      Value value_;
+    };
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
+    AsPathSegment(CPtr cptr) : BaseView(cptr) {}
+
+    Type type() const;
+
+  private:
+    friend BaseRange;
+    ElementCPtr range_data() const;
+    std::size_t range_size() const;
+    static ElementCPtr range_add(const ElementCPtr ptr, std::ptrdiff_t n) { return ptr + n; }
+    static ElementCPtr range_subtract(const ElementCPtr ptr, std::ptrdiff_t n) { return ptr - n; }
+    static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs) {
+      return lhs - rhs;
+    }
+  };
+
+  class AsPath
+    : private Base
+    , public utils::CPtrRange<AsPath, AsPathSegment> {
+  public:
+    using Base::Base;
+    using Base::flags;
+    using Base::type;
+
+    uint8_t asns_count() const;
+    bool asn_4_byte() const;
+
+  private:
+    friend BaseRange;
+    ElementCPtr range_data() const;
+    std::size_t range_size() const;
+    static ElementCPtr range_add(const ElementCPtr ptr, std::ptrdiff_t n);
+    static ElementCPtr range_subtract(const ElementCPtr ptr, std::ptrdiff_t n);
+    static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs);
+  };
 
   class Aggregator : private Base {
   public:
@@ -189,8 +255,8 @@ public:
       uint16_t value;
       uint16_t asn;
     };
+    // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
     Community(uint32_t* cptr) : u32(*cptr) {}
-    explicit operator uint32_t() const { return u32; }
   };
 
   class Communities
@@ -212,10 +278,77 @@ public:
     }
   };
 
+  class ClusterList
+    : private Base
+    , public utils::CPtrRange<ClusterList, uint32_t, uint32_t*> {
+  public:
+    using Base::Base;
+    using Base::flags;
+    using Base::type;
+
+  private:
+    friend BaseRange;
+    ElementCPtr range_data() const;
+    std::size_t range_size() const;
+    static ElementCPtr range_add(const ElementCPtr ptr, std::ptrdiff_t n) { return ptr + n; }
+    static ElementCPtr range_subtract(const ElementCPtr ptr, std::ptrdiff_t n) { return ptr - n; }
+    static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs) {
+      return lhs - rhs;
+    }
+  };
+
+  class MpReach
+    : public Base
+    , public utils::CPtrRange<MpReach, Prefix> {
+  public:
+    using Base::Base;
+    using Base::flags;
+    using Base::type;
+
+    AfiType afi_type() const;
+    SafiType safi_type() const;
+    utils::bytes_view raw_next_hop() const;
+    utils::ip_view next_hop_ip() const;
+    utils::ipv4_view next_hop_ipv4() const;
+    utils::ipv6_view next_hop_ipv6() const;
+
+  private:
+    friend BaseRange;
+    ElementCPtr range_data() const;
+    std::size_t range_size() const;
+    static ElementCPtr range_add(const ElementCPtr ptr, std::ptrdiff_t n);
+    static ElementCPtr range_subtract(const ElementCPtr ptr, std::ptrdiff_t n);
+    static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs);
+  };
+
+  class MpUnreach
+    : public Base
+    , public utils::CPtrRange<MpUnreach, Prefix> {
+  public:
+    using Base::Base;
+    using Base::flags;
+    using Base::type;
+
+    AfiType afi_type() const;
+    SafiType safi_type() const;
+
+  private:
+    friend BaseRange;
+    ElementCPtr range_data() const;
+    std::size_t range_size() const;
+    static ElementCPtr range_add(const ElementCPtr ptr, std::ptrdiff_t n);
+    static ElementCPtr range_subtract(const ElementCPtr ptr, std::ptrdiff_t n);
+    static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs);
+  };
+
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   PathAttributes(CPtr cptr) : BaseView(cptr) {}
 
   bool has_origin() const;
   Origin origin() const;
+
+  bool has_as_path() const;
+  AsPath as_path() const;
 
   bool has_next_hop() const;
   NextHop next_hop() const;
@@ -226,11 +359,46 @@ public:
   bool has_local_pref() const;
   LocalPref local_pref() const;
 
+  bool has_atomic_aggregate() const;
+
   bool has_aggregator() const;
   Aggregator aggregator() const;
 
   bool has_communities() const;
   Communities communities() const;
+
+  bool has_originator_id() const;
+  OriginatorId originator_id() const;
+
+  bool has_cluster_list() const;
+  ClusterList cluster_list() const;
+
+  bool has_mp_reach() const;
+  MpReach mp_reach() const;
+
+  bool has_mp_unreach() const;
+  MpUnreach mp_unreach() const;
+
+  // bool has_ext_communities() const;
+  // ExtCommunities ext_communities() const;
+
+  // bool has_as4_path() const;
+  // AsPath as4_path() const;
+
+  // bool has_as4_aggregator() const;
+  // Aggregator as4_aggregator() const;
+
+  // bool has_as_pathlimit() const;
+  // AsPathlimit as_pathlimit() const;
+
+  // bool has_ipv6_ext_communities() const;
+  // ExtCommunitiesIpv6 bool ipv6_ext_communities() const;
+
+  // bool has_bgp_ls() const;
+  // BgpLs bgp_ls() const;
+
+  // bool has_large_communities() const;
+  // LargeCommunities large_communities() const;
 
   // TODO: Rest of path attributes
 };

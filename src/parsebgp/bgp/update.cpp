@@ -4,41 +4,14 @@
 namespace parsebgp {
 namespace bgp {
 
-static bool has_attr_type(parsebgp_bgp_update_path_attrs_t* cptr, PathAttributes::Type type) {
-  return cptr->attrs[type.value()].type == type.value();
+static bool has_attr_type(parsebgp_bgp_update_path_attrs_t* cptr,
+                          PathAttributes::Type::Value type) {
+  return cptr->attrs[type].type == type;
 }
 
 //==============================================================================
 // bgp::PathAttributes
 //==============================================================================
-
-static_assert(int(PathAttributes::Type::ORIGIN) == PARSEBGP_BGP_PATH_ATTR_TYPE_ORIGIN);
-static_assert(int(PathAttributes::Type::AS_PATH) == PARSEBGP_BGP_PATH_ATTR_TYPE_AS_PATH);
-static_assert(int(PathAttributes::Type::NEXT_HOP) == PARSEBGP_BGP_PATH_ATTR_TYPE_NEXT_HOP);
-static_assert(int(PathAttributes::Type::MED) == PARSEBGP_BGP_PATH_ATTR_TYPE_MED);
-static_assert(int(PathAttributes::Type::LOCAL_PREF) == PARSEBGP_BGP_PATH_ATTR_TYPE_LOCAL_PREF);
-static_assert(int(PathAttributes::Type::ATOMIC_AGGREGATE) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_ATOMIC_AGGREGATE);
-static_assert(int(PathAttributes::Type::AGGREGATOR) == PARSEBGP_BGP_PATH_ATTR_TYPE_AGGREGATOR);
-static_assert(int(PathAttributes::Type::COMMUNITIES) == PARSEBGP_BGP_PATH_ATTR_TYPE_COMMUNITIES);
-static_assert(int(PathAttributes::Type::ORIGINATOR_ID) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_ORIGINATOR_ID);
-static_assert(int(PathAttributes::Type::CLUSTER_LIST) == PARSEBGP_BGP_PATH_ATTR_TYPE_CLUSTER_LIST);
-static_assert(int(PathAttributes::Type::MP_REACH_NLRI) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_MP_REACH_NLRI);
-static_assert(int(PathAttributes::Type::MP_UNREACH_NLRI) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_MP_UNREACH_NLRI);
-static_assert(int(PathAttributes::Type::EXT_COMMUNITIES) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_EXT_COMMUNITIES);
-static_assert(int(PathAttributes::Type::AS4_PATH) == PARSEBGP_BGP_PATH_ATTR_TYPE_AS4_PATH);
-static_assert(int(PathAttributes::Type::AS4_AGGREGATOR) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_AS4_AGGREGATOR);
-static_assert(int(PathAttributes::Type::AS_PATHLIMIT) == PARSEBGP_BGP_PATH_ATTR_TYPE_AS_PATHLIMIT);
-static_assert(int(PathAttributes::Type::IPV6_EXT_COMMUNITIES) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_IPV6_EXT_COMMUNITIES);
-static_assert(int(PathAttributes::Type::BGP_LS) == PARSEBGP_BGP_PATH_ATTR_TYPE_BGP_LS);
-static_assert(int(PathAttributes::Type::LARGE_COMMUNITIES) ==
-              PARSEBGP_BGP_PATH_ATTR_TYPE_LARGE_COMMUNITIES);
 
 bool PathAttributes::has_origin() const {
   return has_attr_type(cptr(), Type::ORIGIN);
@@ -47,6 +20,15 @@ bool PathAttributes::has_origin() const {
 auto PathAttributes::origin() const -> Origin {
   assert(has_origin());
   return &cptr()->attrs[Type::ORIGIN];
+}
+
+bool PathAttributes::has_as_path() const {
+  return has_attr_type(cptr(), Type::AS_PATH);
+}
+
+auto PathAttributes::as_path() const -> AsPath {
+  assert(has_as_path());
+  return &cptr()->attrs[Type::AS_PATH];
 }
 
 bool PathAttributes::has_next_hop() const {
@@ -94,6 +76,47 @@ auto PathAttributes::communities() const -> Communities {
   return &cptr()->attrs[Type::COMMUNITIES];
 }
 
+bool PathAttributes::has_cluster_list() const {
+  return has_attr_type(cptr(), Type::CLUSTER_LIST);
+}
+
+auto PathAttributes::cluster_list() const -> ClusterList {
+  assert(has_cluster_list());
+  return &cptr()->attrs[Type::CLUSTER_LIST];
+}
+
+//==============================================================================
+// bgp::PathAttributes::Type
+//==============================================================================
+
+static_assert(PathAttributes::Type::ORIGIN == int(PARSEBGP_BGP_PATH_ATTR_TYPE_ORIGIN));
+static_assert(PathAttributes::Type::AS_PATH == int(PARSEBGP_BGP_PATH_ATTR_TYPE_AS_PATH));
+static_assert(PathAttributes::Type::NEXT_HOP == int(PARSEBGP_BGP_PATH_ATTR_TYPE_NEXT_HOP));
+static_assert(PathAttributes::Type::MED == int(PARSEBGP_BGP_PATH_ATTR_TYPE_MED));
+static_assert(PathAttributes::Type::LOCAL_PREF == int(PARSEBGP_BGP_PATH_ATTR_TYPE_LOCAL_PREF));
+static_assert(PathAttributes::Type::ATOMIC_AGGREGATE ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_ATOMIC_AGGREGATE));
+static_assert(PathAttributes::Type::AGGREGATOR == int(PARSEBGP_BGP_PATH_ATTR_TYPE_AGGREGATOR));
+static_assert(PathAttributes::Type::COMMUNITIES == int(PARSEBGP_BGP_PATH_ATTR_TYPE_COMMUNITIES));
+static_assert(PathAttributes::Type::ORIGINATOR_ID ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_ORIGINATOR_ID));
+static_assert(PathAttributes::Type::CLUSTER_LIST == int(PARSEBGP_BGP_PATH_ATTR_TYPE_CLUSTER_LIST));
+static_assert(PathAttributes::Type::MP_REACH_NLRI ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_MP_REACH_NLRI));
+static_assert(PathAttributes::Type::MP_UNREACH_NLRI ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_MP_UNREACH_NLRI));
+static_assert(PathAttributes::Type::EXT_COMMUNITIES ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_EXT_COMMUNITIES));
+static_assert(PathAttributes::Type::AS4_PATH == int(PARSEBGP_BGP_PATH_ATTR_TYPE_AS4_PATH));
+static_assert(PathAttributes::Type::AS4_AGGREGATOR ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_AS4_AGGREGATOR));
+static_assert(PathAttributes::Type::AS_PATHLIMIT == int(PARSEBGP_BGP_PATH_ATTR_TYPE_AS_PATHLIMIT));
+static_assert(PathAttributes::Type::IPV6_EXT_COMMUNITIES ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_IPV6_EXT_COMMUNITIES));
+static_assert(PathAttributes::Type::BGP_LS == int(PARSEBGP_BGP_PATH_ATTR_TYPE_BGP_LS));
+static_assert(PathAttributes::Type::LARGE_COMMUNITIES ==
+              int(PARSEBGP_BGP_PATH_ATTR_TYPE_LARGE_COMMUNITIES));
+
 //==============================================================================
 // bgp::PathAttributes::Base
 //==============================================================================
@@ -103,7 +126,7 @@ auto PathAttributes::Base::flags() const -> Flags {
 }
 
 auto PathAttributes::Base::type() const -> Type {
-  return Type::Value(cptr()->type);
+  return Type(Type::Value(cptr()->type));
 }
 
 //==============================================================================
@@ -123,6 +146,69 @@ PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(Med, med)
 PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE(LocalPref, local_pref)
 
 #undef PARSEBGP_CPP_GENERIC_PATH_ATTRIBUTE
+
+//==============================================================================
+// bgp::PathAttributes::AsPathSegment
+//==============================================================================
+
+auto PathAttributes::AsPathSegment::type() const -> Type {
+  return Type::Value(cptr()->type);
+}
+
+auto PathAttributes::AsPathSegment::range_data() const -> ElementCPtr {
+  return cptr()->asns;
+}
+
+std::size_t PathAttributes::AsPathSegment::range_size() const {
+  return cptr()->asns_cnt;
+}
+
+//==============================================================================
+// bgp::PathAttributes::AsPathSegment::Type
+//==============================================================================
+
+static_assert(PathAttributes::AsPathSegment::Type::AS_SET ==
+              int(PARSEBGP_BGP_UPDATE_AS_PATH_SEG_AS_SET));
+static_assert(PathAttributes::AsPathSegment::Type::AS_SEQ ==
+              int(PARSEBGP_BGP_UPDATE_AS_PATH_SEG_AS_SEQ));
+static_assert(PathAttributes::AsPathSegment::Type::CONFED_SEQ ==
+              int(PARSEBGP_BGP_UPDATE_AS_PATH_SEG_CONFED_SEQ));
+static_assert(PathAttributes::AsPathSegment::Type::CONFED_SET ==
+              int(PARSEBGP_BGP_UPDATE_AS_PATH_SEG_CONFED_SET));
+
+//==============================================================================
+// bgp::PathAttributes::AsPath
+//==============================================================================
+
+uint8_t PathAttributes::AsPath::asns_count() const {
+  return cptr()->data.as_path->asns_cnt;
+}
+
+bool PathAttributes::AsPath::asn_4_byte() const {
+  return cptr()->data.as_path->asn_4_byte;
+}
+
+auto PathAttributes::AsPath::range_data() const -> ElementCPtr {
+  return cptr()->data.as_path->segs;
+}
+
+std::size_t PathAttributes::AsPath::range_size() const {
+  return cptr()->data.as_path->segs_cnt;
+}
+
+auto PathAttributes::AsPath::range_add(const ElementCPtr ptr, std::ptrdiff_t n) -> ElementCPtr {
+  return ptr + n;
+}
+
+auto PathAttributes::AsPath::range_subtract(const ElementCPtr ptr, std::ptrdiff_t n)
+  -> ElementCPtr {
+  return ptr - n;
+}
+
+std::ptrdiff_t PathAttributes::AsPath::range_difference(const ElementCPtr lhs,
+                                                        const ElementCPtr rhs) {
+  return lhs - rhs;
+}
 
 //==============================================================================
 // bgp::PathAttributes::Aggregator
@@ -146,6 +232,18 @@ auto PathAttributes::Communities::range_data() const -> ElementCPtr {
 
 std::size_t PathAttributes::Communities::range_size() const {
   return cptr()->data.communities->communities_cnt;
+}
+
+//==============================================================================
+// bgp::PathAttributes::ClusterList
+//==============================================================================
+
+auto PathAttributes::ClusterList::range_data() const -> ElementCPtr {
+  return cptr()->data.cluster_list->cluster_ids;
+}
+
+std::size_t PathAttributes::ClusterList::range_size() const {
+  return cptr()->data.cluster_list->cluster_ids_cnt;
 }
 
 } // namespace bgp

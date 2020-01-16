@@ -8,6 +8,10 @@
 
 namespace parsebgp {
 
+//==============================================================================
+// Options
+//==============================================================================
+
 Options::Options() : BaseView(new (std::nothrow) parsebgp_opts) {
   if (cptr()) parsebgp_opts_init(cptr());
 }

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <iterator>
 #include <memory>
+#include <tuple>
 #include <type_traits>
 
 #ifdef PARSEBGP_CPP_LOG_ENABLED
@@ -44,14 +45,24 @@ using nonstd::make_unexpected;
 using nonstd::span;
 using nonstd::string_view;
 
+using bytes_view = span<const uint8_t>;
+using ip_view = span<const uint8_t>; // TODO: Make this something lijke variant.
 using ipv4_view = span<const uint8_t, 4>;
 using ipv6_view = span<const uint8_t, 16>;
+
+/* enable_if doesn't work in nondeduced contexts, so use sfinae_t/sfinae_v_t instead. */
+template<typename T, typename... Ts>
+using sfinae_t = T;
+
+template<typename T, bool... Bs>
+using sfinae_v_t = sfinae_t<T, typename std::enable_if<Bs>::type...>;
 
 template<typename SelfT, typename CPtrT>
 class CPtrView {
 public:
   using CPtr = CPtrT;
 
+  CPtrView() = delete;
   bool is_cptr_null() { return cptr_; }
 
 private:
@@ -59,7 +70,7 @@ private:
 
   using BaseView = CPtrView;
 
-  CPtrView() = delete;
+  // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   CPtrView(CPtr cptr) : cptr_(cptr) {}
   ~CPtrView() = default;
   CPtrView(const CPtrView&) = default;
@@ -171,6 +182,7 @@ public:
     using typename CPtrView<Iterator, ElementCPtr>::CPtr;
     using CPtrView<Iterator, ElementCPtr>::cptr;
 
+    // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
     Iterator(CPtr cptr) : BaseView(cptr) {}
   };
 

@@ -4,6 +4,10 @@
 namespace parsebgp {
 namespace bgp {
 
+//==============================================================================
+// bgp::Options
+//==============================================================================
+
 bool Options::marker_omitted() const {
   return cptr()->marker_omitted;
 }
