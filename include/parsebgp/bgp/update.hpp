@@ -308,7 +308,6 @@ public:
     AfiType afi_type() const;
     SafiType safi_type() const;
     utils::bytes_view raw_next_hop() const;
-    utils::ip_view next_hop_ip() const;
     utils::ipv4_view next_hop_ipv4() const;
     utils::ipv6_view next_hop_ipv6() const;
 

@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <parsebgp/bgp/update.hpp>
 #include <parsebgp_bgp_update.h>
 
@@ -244,6 +245,91 @@ auto PathAttributes::ClusterList::range_data() const -> ElementCPtr {
 
 std::size_t PathAttributes::ClusterList::range_size() const {
   return cptr()->data.cluster_list->cluster_ids_cnt;
+}
+
+//==============================================================================
+// bgp::PathAttributes::MpReach
+//==============================================================================
+
+AfiType PathAttributes::MpReach::afi_type() const {
+  return AfiType::Value(cptr()->data.mp_reach->afi);
+}
+
+SafiType PathAttributes::MpReach::safi_type() const {
+  return SafiType::Value(cptr()->data.mp_reach->safi);
+}
+
+utils::bytes_view PathAttributes::MpReach::raw_next_hop() const {
+  static_assert(offsetof(parsebgp_bgp_update_mp_reach, next_hop) +
+                  sizeof(parsebgp_bgp_update_mp_reach::next_hop) ==
+                offsetof(parsebgp_bgp_update_mp_reach, next_hop_ll));
+  return { cptr()->data.mp_reach->next_hop, cptr()->data.mp_reach->next_hop_len };
+}
+
+utils::ipv4_view PathAttributes::MpReach::next_hop_ipv4() const {
+  assert(afi_type().is_ipv4() && cptr()->data.mp_reach->next_hop_len == 4);
+  return { cptr()->data.mp_reach->next_hop, 4 };
+}
+
+utils::ipv6_view PathAttributes::MpReach::next_hop_ipv6() const {
+  assert(afi_type().is_ipv6() && cptr()->data.mp_reach->next_hop_len == 16);
+  return cptr()->data.mp_reach->next_hop;
+}
+
+auto PathAttributes::MpReach::range_data() const -> ElementCPtr {
+  return cptr()->data.mp_reach->nlris;
+}
+
+std::size_t PathAttributes::MpReach::range_size() const {
+  return cptr()->data.mp_reach->nlris_cnt;
+}
+
+auto PathAttributes::MpReach::range_add(const ElementCPtr ptr, std::ptrdiff_t n) -> ElementCPtr {
+  return ptr + n;
+}
+
+auto PathAttributes::MpReach::range_subtract(const ElementCPtr ptr, std::ptrdiff_t n)
+  -> ElementCPtr {
+  return ptr - n;
+}
+
+std::ptrdiff_t PathAttributes::MpReach::range_difference(const ElementCPtr lhs,
+                                                         const ElementCPtr rhs) {
+  return lhs - rhs;
+}
+
+//==============================================================================
+// bgp::PathAttributes::MpUnreach
+//==============================================================================
+
+AfiType PathAttributes::MpUnreach::afi_type() const {
+  return AfiType::Value(cptr()->data.mp_reach->afi);
+}
+
+SafiType PathAttributes::MpUnreach::safi_type() const {
+  return SafiType::Value(cptr()->data.mp_reach->safi);
+}
+
+auto PathAttributes::MpUnreach::range_data() const -> ElementCPtr {
+  return cptr()->data.mp_reach->nlris;
+}
+
+std::size_t PathAttributes::MpUnreach::range_size() const {
+  return cptr()->data.mp_reach->nlris_cnt;
+}
+
+auto PathAttributes::MpUnreach::range_add(const ElementCPtr ptr, std::ptrdiff_t n) -> ElementCPtr {
+  return ptr + n;
+}
+
+auto PathAttributes::MpUnreach::range_subtract(const ElementCPtr ptr, std::ptrdiff_t n)
+  -> ElementCPtr {
+  return ptr - n;
+}
+
+std::ptrdiff_t PathAttributes::MpUnreach::range_difference(const ElementCPtr lhs,
+                                                         const ElementCPtr rhs) {
+  return lhs - rhs;
 }
 
 } // namespace bgp
