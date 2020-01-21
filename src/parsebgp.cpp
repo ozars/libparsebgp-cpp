@@ -11,6 +11,10 @@ Message::~Message() {
   parsebgp_destroy_msg(cptr());
 }
 
+auto Message::type() const -> Type {
+  return Type::Value(cptr()->type);
+}
+
 utils::expected<size_t, Error> Message::decode(const Options& opts,
                                                Type type,
                                                const uint8_t* buf,
