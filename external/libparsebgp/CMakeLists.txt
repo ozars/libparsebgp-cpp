@@ -27,14 +27,16 @@ endif()
 
 configure_file(
     "${LIBPARSEBGP_LIB_DIR}/parsebgp.h.in"
-    "${LIBPARSEBGP_LIB_DIR}/parsebgp.h"
+    "${CMAKE_CURRENT_LIST_DIR}/${LIBPARSEBGP_LIB_DIR}/parsebgp.h"
     @ONLY
 )
 
 set_target_properties(parsebgp PROPERTIES
     C_STANDARD 99
     SOVERSION ${LIBPARSEBGP_SOVERSION}
-    PUBLIC_HEADER
+)
+
+set_property(TARGET parsebgp PROPERTY PUBLIC_HEADER
         "${LIBPARSEBGP_LIB_DIR}/parsebgp.h"
         "${LIBPARSEBGP_LIB_DIR}/parsebgp_error.h"
         "${LIBPARSEBGP_LIB_DIR}/parsebgp_opts.h"
