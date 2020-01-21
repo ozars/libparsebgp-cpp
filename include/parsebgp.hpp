@@ -54,6 +54,7 @@ public:
   Message& operator=(const Message&) = delete;
   Message& operator=(Message&&) = default;
 
+  Type type() const;
   utils::expected<size_t, Error> decode(const Options& opts,
                                         Type type,
                                         const uint8_t* buf,
