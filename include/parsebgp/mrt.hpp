@@ -41,8 +41,8 @@ class Message;
 namespace parsebgp {
 namespace mrt {
 
-using bgp::Asn;
 using bgp::AfiType;
+using bgp::Asn;
 
 class Message : public utils::CPtrView<Message, parsebgp_mrt_msg*> {
 public:
@@ -146,7 +146,7 @@ public:
 
 class PeerIndex
   : public utils::CPtrView<PeerIndex, parsebgp_mrt_table_dump_v2_peer_index*>
-  , utils::CPtrRange<PeerIndex, PeerEntry> {
+  , public utils::CPtrRange<PeerIndex, PeerEntry> {
 public:
   // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   PeerIndex(CPtr cptr) : BaseView(cptr) {}
