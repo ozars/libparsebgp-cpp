@@ -9,4 +9,4 @@
 	url = https://github.com/martinmoene/expected-lite
 [submodule "external/libparsebgp/upstream"]
 	path = external/libparsebgp/upstream
-	url = https://github.com/ozars/libparsebgp-1
+	url = https://github.com/CAIDA/libparsebgp
