@@ -59,6 +59,10 @@ auto PathAttributes::local_pref() const -> LocalPref {
   return &cptr()->attrs[Type::LOCAL_PREF];
 }
 
+bool PathAttributes::has_atomic_aggregate() const {
+  return has_attr_type(cptr(), Type::ATOMIC_AGGREGATE);
+}
+
 bool PathAttributes::has_aggregator() const {
   return has_attr_type(cptr(), Type::AGGREGATOR);
 }
@@ -84,6 +88,15 @@ bool PathAttributes::has_cluster_list() const {
 auto PathAttributes::cluster_list() const -> ClusterList {
   assert(has_cluster_list());
   return &cptr()->attrs[Type::CLUSTER_LIST];
+}
+
+bool PathAttributes::has_large_communities() const {
+  return has_attr_type(cptr(), Type::LARGE_COMMUNITIES);
+}
+
+auto PathAttributes::large_communities() const -> LargeCommunities {
+  assert(has_large_communities());
+  return &cptr()->attrs[Type::LARGE_COMMUNITIES];
 }
 
 //==============================================================================
@@ -328,7 +341,41 @@ auto PathAttributes::MpUnreach::range_subtract(const ElementCPtr ptr, std::ptrdi
 }
 
 std::ptrdiff_t PathAttributes::MpUnreach::range_difference(const ElementCPtr lhs,
-                                                         const ElementCPtr rhs) {
+                                                           const ElementCPtr rhs) {
+  return lhs - rhs;
+}
+
+//==============================================================================
+// bgp::PathAttributes::LargeCommunity
+//==============================================================================
+
+PathAttributes::LargeCommunity::LargeCommunity(parsebgp_bgp_update_large_community* cptr)
+  : global_admin(cptr->global_admin), local_1(cptr->local_1), local_2(cptr->local_2) {}
+
+//==============================================================================
+// bgp::PathAttributes::LargeCommunities
+//==============================================================================
+
+auto PathAttributes::LargeCommunities::range_data() const -> ElementCPtr {
+  return cptr()->data.large_communities->communities;
+}
+
+std::size_t PathAttributes::LargeCommunities::range_size() const {
+  return cptr()->data.large_communities->communities_cnt;
+}
+
+auto PathAttributes::LargeCommunities::range_add(const ElementCPtr ptr, std::ptrdiff_t n)
+  -> ElementCPtr {
+  return ptr + n;
+}
+
+auto PathAttributes::LargeCommunities::range_subtract(const ElementCPtr ptr, std::ptrdiff_t n)
+  -> ElementCPtr {
+  return ptr - n;
+}
+
+std::ptrdiff_t PathAttributes::LargeCommunities::range_difference(const ElementCPtr lhs,
+                                                                  const ElementCPtr rhs) {
   return lhs - rhs;
 }
 

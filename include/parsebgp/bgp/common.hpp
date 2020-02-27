@@ -125,7 +125,7 @@ public:
   Asn(uint32_t* asnp) : Asn(asnp ? *asnp : 0) {}
 
   // NOLINTNEXTLINE(google-explicit-constructor): Allow implicit conversion of AS number.
-  operator uint32_t() { return asn_; }
+  operator uint32_t() const { return asn_; }
 
   bool is_16bit() const { return asn_ <= 65535U; }
   bool is_32bit() const { return asn_ > 65535U; }

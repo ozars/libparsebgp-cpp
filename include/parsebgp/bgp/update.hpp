@@ -340,6 +340,33 @@ public:
     static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs);
   };
 
+  struct LargeCommunity {
+    uint32_t global_admin;
+    uint32_t local_1;
+    uint32_t local_2;
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
+    LargeCommunity(parsebgp_bgp_update_large_community* cptr);
+  };
+
+  class LargeCommunities
+    : private Base
+    , public utils::
+        CPtrRange<LargeCommunities, LargeCommunity, parsebgp_bgp_update_large_community*> {
+  public:
+    using Base::Base;
+    using Base::flags;
+    using Base::type;
+
+  private:
+    friend BaseRange;
+    ElementCPtr range_data() const;
+    std::size_t range_size() const;
+    static ElementCPtr range_add(const ElementCPtr ptr, std::ptrdiff_t n);
+    static ElementCPtr range_subtract(const ElementCPtr ptr, std::ptrdiff_t n);
+    static std::ptrdiff_t range_difference(const ElementCPtr lhs, const ElementCPtr rhs);
+  };
+
   // NOLINTNEXTLINE(google-explicit-constructor): Allow propagation of C pointer.
   PathAttributes(CPtr cptr) : BaseView(cptr) {}
 
@@ -396,8 +423,8 @@ public:
   // bool has_bgp_ls() const;
   // BgpLs bgp_ls() const;
 
-  // bool has_large_communities() const;
-  // LargeCommunities large_communities() const;
+  bool has_large_communities() const;
+  LargeCommunities large_communities() const;
 
   // TODO: Rest of path attributes
 };
