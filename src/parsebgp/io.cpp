@@ -2,6 +2,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <zlib.h>
+#include <bzlib.h>
 
 #include <parsebgp/io.hpp>
 
@@ -48,6 +49,54 @@ auto GzipStream::status() const -> Status {
 }
 
 void GzipStream::clear_status() {
+  status_ = Status::OK;
+}
+
+//==============================================================================
+// io::Bzip2Stream
+//==============================================================================
+
+Bzip2Stream::Bzip2Stream(utils::string_view path, size_t internal_buf_size)
+  : BaseView(BZ2_bzopen(path.data(), "rb"))
+  , status_(Status::Value(cptr() ? BZ_OK : BZ_MEM_ERROR)) {}
+
+Bzip2Stream::~Bzip2Stream() {
+  if (cptr()) {
+    BZ2_bzclose(cptr());
+  }
+}
+
+size_t Bzip2Stream::read(void* buffer, size_t length) {
+  int ret = BZ2_bzread(cptr(), buffer, length);
+  if (ret >= 0) {
+    if (ret < length) {
+      status_ = Status::Value(BZ_STREAM_END);
+    }
+    return size_t(ret);
+  }
+  int errnum;
+  BZ2_bzerror(cptr(), &errnum);
+  status_ = Status::Value(errnum);
+  return 0;
+}
+
+bool Bzip2Stream::good() {
+  return !bad() && !eof();
+}
+
+bool Bzip2Stream::eof() {
+  return status_ == Z_STREAM_END;
+}
+
+bool Bzip2Stream::bad() const {
+  return !status_.is_ok() && !status_.is_stream_end();
+}
+
+auto Bzip2Stream::status() const -> Status {
+  return status_;
+}
+
+void Bzip2Stream::clear_status() {
   status_ = Status::OK;
 }
 

@@ -10,3 +10,6 @@
 [submodule "external/libparsebgp/upstream"]
 	path = external/libparsebgp/upstream
 	url = https://github.com/CAIDA/libparsebgp
+[submodule "external/cmaked-bzip2"]
+	path = external/cmaked-bzip2
+	url = https://github.com/ozars/cmaked-bzip2

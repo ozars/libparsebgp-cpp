@@ -84,6 +84,91 @@ private:
   Status status_;
 };
 
+class Bzip2Stream : public utils::CPtrView<Bzip2Stream, void*> {
+public:
+  class Status : public utils::EnumClass<Status> {
+  public:
+    enum Value {
+      OK = 0,
+      RUN_OK = 1,
+      FLUSH_OK = 2,
+      FINISH_OK = 3,
+      STREAM_END = 4,
+      SEQUENCE_ERROR = -1,
+      PARAM_ERROR = -2,
+      MEM_ERROR = -3,
+      DATA_ERROR = -4,
+      DATA_ERROR_MAGIC = -5,
+      IO_ERROR = -6,
+      UNEXPECTED_EOF = -7,
+      OUTBUFF_FULL = -8,
+      CONFIG_ERROR = -9,
+    };
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    Status(Value value = OK) : value_(value) {}
+
+    // NOLINTNEXTLINE(google-explicit-constructor): Enum class.
+    operator Value() const { return value_; }
+
+    Value value() const { return value_; }
+    bool is_valid() const {
+      switch (value_) {
+        case OK:
+        case RUN_OK:
+        case FLUSH_OK:
+        case FINISH_OK:
+        case STREAM_END:
+        case SEQUENCE_ERROR:
+        case PARAM_ERROR:
+        case MEM_ERROR:
+        case DATA_ERROR:
+        case DATA_ERROR_MAGIC:
+        case IO_ERROR:
+        case UNEXPECTED_EOF:
+        case OUTBUFF_FULL:
+        case CONFIG_ERROR:
+          return true;
+      }
+      return false;
+    }
+    bool is_ok() const { return value_ == OK; }
+    bool is_run_ok() const { return value_ == RUN_OK; }
+    bool is_flush_ok() const { return value_ == FLUSH_OK; }
+    bool is_finish_ok() const { return value_ == FINISH_OK; }
+    bool is_stream_end() const { return value_ == STREAM_END; }
+    bool is_sequence_error() const { return value_ == SEQUENCE_ERROR; }
+    bool is_param_error() const { return value_ == PARAM_ERROR; }
+    bool is_mem_error() const { return value_ == MEM_ERROR; }
+    bool is_data_error() const { return value_ == DATA_ERROR; }
+    bool is_data_error_magic() const { return value_ == DATA_ERROR_MAGIC; }
+    bool is_io_error() const { return value_ == IO_ERROR; }
+    bool is_unexpected_eof() const { return value_ == UNEXPECTED_EOF; }
+    bool is_outbuff_full() const { return value_ == OUTBUFF_FULL; }
+    bool is_config_error() const { return value_ == CONFIG_ERROR; }
+
+  private:
+    Value value_;
+  };
+
+  Bzip2Stream(utils::string_view path, size_t internal_buf_size);
+  ~Bzip2Stream();
+  Bzip2Stream(const Bzip2Stream&) = delete;
+  Bzip2Stream(Bzip2Stream&&) = default;
+  Bzip2Stream& operator=(const Bzip2Stream&) = delete;
+  Bzip2Stream& operator=(Bzip2Stream&&) = default;
+
+  size_t read(void* buffer, size_t length);
+  bool good();
+  bool eof();
+  bool bad() const;
+  Status status() const;
+  void clear_status();
+
+private:
+  Status status_;
+};
+
 /*
  * Mirrored ring buffer consists of two contiguous mapped memory regions mirroring each other.
  *

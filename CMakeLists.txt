@@ -23,8 +23,8 @@ target_sources(parsebgp_cpp PRIVATE
 target_include_directories(parsebgp_cpp
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
-target_link_libraries(parsebgp_cpp PUBLIC parsebgp ZLIB::ZLIB span-lite
-    expected-lite string-view-lite)
+target_link_libraries(parsebgp_cpp PUBLIC parsebgp ZLIB::ZLIB bzip2_library
+    span-lite expected-lite string-view-lite)
 set_target_properties(parsebgp_cpp PROPERTIES CXX_STANDARD 17)
 
 add_subdirectory(tests)
