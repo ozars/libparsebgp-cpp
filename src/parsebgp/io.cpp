@@ -1,8 +1,8 @@
+#include <bzlib.h>
 #include <cassert>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <zlib.h>
-#include <bzlib.h>
 
 #include <parsebgp/io.hpp>
 
@@ -56,7 +56,7 @@ void GzipStream::clear_status() {
 // io::Bzip2Stream
 //==============================================================================
 
-Bzip2Stream::Bzip2Stream(utils::string_view path, size_t internal_buf_size)
+Bzip2Stream::Bzip2Stream(utils::string_view path)
   : BaseView(BZ2_bzopen(path.data(), "rb"))
   , status_(Status::Value(cptr() ? BZ_OK : BZ_MEM_ERROR)) {}
 

@@ -151,7 +151,7 @@ public:
     Value value_;
   };
 
-  Bzip2Stream(utils::string_view path, size_t internal_buf_size);
+  Bzip2Stream(utils::string_view path);
   ~Bzip2Stream();
   Bzip2Stream(const Bzip2Stream&) = delete;
   Bzip2Stream(Bzip2Stream&&) = default;
